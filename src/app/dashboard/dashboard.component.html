@@ -1,0 +1,44 @@
+<div class="dashboard_header">
+	<div class="searchbar">
+		<app-searchbar></app-searchbar>
+	</div>
+	<div class="dashboard_content_buttons">
+		<button mat-flat-button color="primary" (click)="openUploadDialog('file')">
+      <mat-icon>add_circle</mat-icon>
+      Upload File
+    </button>
+		<button mat-raised-button color="light" (click)="openUploadDialog('folder')">
+      <mat-icon>cloud_upload</mat-icon>
+      Upload Folder
+    </button>
+		<button mat-raised-button color="primary">
+			<mat-icon>create_new_folder</mat-icon>
+			Create Folder
+		</button>
+		<button mat-raised-button color="primary">
+			<mat-icon>share</mat-icon>
+			Share
+		</button>
+	</div>
+	<div class="container">
+		<div class="suggested_files">
+			<span>Suggested files</span>
+		</div>
+	</div>
+</div>
+
+<!--
+ <div class="upload-container">
+			<input type="file" (change)="onFileSelected($event)" />
+			<div class="file-details" *ngIf="fileInfo">
+				<p><strong>File Name:</strong> {{ fileInfo.name }}</p>
+				<p><strong>File Extension:</strong> {{ fileInfo.extension }}</p>
+				<p><strong>File Size:</strong> {{ fileInfo.size }}</p>
+			</div>
+		</div>
+<button (click)="fileBuffer && uploadFile({ buffer: fileBuffer, info: fileInfo! })" >
+  Upload
+</button>
+<div *ngIf="progress > 0">
+  <p>Progress: {{ progress }}%</p>
+</div> -->

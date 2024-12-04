@@ -1,0 +1,11 @@
+<div class="custom-toolbar">
+	<button mat-icon-button routerLink="/dashboard" title="Dashboard">
+		<mat-icon>home</mat-icon>
+	</button>
+	<button mat-icon-button routerLink="/my-account" title="My Account">
+		<mat-icon>account_circle</mat-icon>
+	</button>
+	<button mat-icon-button (click)="onLogout()" title="Logout">
+		<mat-icon style="color: #d32f2f;">exit_to_app</mat-icon>
+	</button>
+</div>

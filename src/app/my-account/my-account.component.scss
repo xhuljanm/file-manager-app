@@ -1,0 +1,31 @@
+.my-account-container {
+	position: fixed;
+    top:  50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+}
+
+.form-fields {
+	display: flex;
+	flex-direction: column;
+	min-width: 250px;
+}
+
+mat-card-content {
+	margin-top: 25px;
+}
+
+mat-card {
+	background-color: transparent;
+	width: 400px;
+	align-items: center;
+	text-align: center;
+}
+
+.submit_button {
+	width: 150px;
+	margin-top: 15px;
+	top:  50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+}

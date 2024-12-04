@@ -1,0 +1,16 @@
+
+.search-container {
+	max-width: 500px;
+	margin: auto 0;
+}
+
+.search-field {
+	width: 100%;
+}
+
+.clear-search-button {
+	position: absolute;
+	right: 5px;
+	top: 50%;
+	transform: translateY(-50%); //adjust centering
+}

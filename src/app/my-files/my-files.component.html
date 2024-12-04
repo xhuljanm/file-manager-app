@@ -1,0 +1,29 @@
+<div class="file-manager"  [ngClass]="{'expanded': opened}">
+	<mat-toolbar color="primary">
+		<span>My Files</span>
+	</mat-toolbar>
+
+	<div class="file-list">
+		<mat-list>
+			<div class="header">
+				<div>Name</div>
+				<div>Uploaded At</div>
+				<div>Type</div>
+				<div>File Size</div>
+			</div>
+
+			<mat-list-item *ngFor="let file of files; let i = index">
+				<div class="row">
+					<div>
+						<mat-icon>{{ file.type === 'file' ? 'insert_drive_file' : 'folder' }}</mat-icon>
+						{{ file.name }}
+					</div>
+					<div>{{ file.modifiedAt }}</div>
+					<div>{{ file.type }}</div>
+					<div>{{ file.size }}</div>
+				</div>
+				<!-- <hr /> -->
+			</mat-list-item>
+		</mat-list>
+	</div>
+</div>

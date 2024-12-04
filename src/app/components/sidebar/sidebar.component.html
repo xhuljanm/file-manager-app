@@ -1,0 +1,37 @@
+<mat-sidenav-container class="sidenav-container">
+	<mat-sidenav #sidenav mode="side" [opened]="opened" class="sidenav">
+	  <mat-nav-list>
+		<mat-list-item routerLink="/dashboard">
+			<div class="nav-button">
+				<mat-icon>dashboard</mat-icon>
+				<span>Dashboard</span>
+			</div>
+		</mat-list-item>
+		<mat-list-item routerLink="/my-files">
+			<div class="nav-button">
+				<mat-icon>folder_open</mat-icon>
+				<span>My Files</span>
+			</div>
+		</mat-list-item>
+		<mat-list-item>
+			<div class="nav-button">
+				<mat-icon>star_border</mat-icon>
+				<span>Starred</span>
+			</div>
+		</mat-list-item>
+	  </mat-nav-list>
+	</mat-sidenav>
+
+	<mat-sidenav-content>
+		<mat-toolbar color="primary">
+			<button mat-icon-button (click)="sidenav.toggle()">
+				<mat-icon>menu</mat-icon>
+			</button>
+		</mat-toolbar>
+
+		<!-- <div class="content">
+			<h1>Sidebar Content</h1>
+			<p>This is the sidebar content area.</p>
+		</div> -->
+	</mat-sidenav-content>
+</mat-sidenav-container>

@@ -1,0 +1,34 @@
+<div class="dialog-container">
+  <button mat-icon-button class="close-button" (click)="closeDialog()">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <h3>Upload {{ uploadMode }}</h3>
+
+  <div
+    class="upload-area"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+    (click)="fileInput.click()"
+    [ngClass]="{ dragging: isDragging, 'file-hover': isFileHovered }"
+  >
+    <mat-icon>cloud_upload</mat-icon>
+
+    <p *ngIf="!fileInfo">Drag and drop your {{ uploadMode }} here</p>
+
+    <!-- If multiple files are detected, we show them as a list -->
+    <div *ngIf="fileInfo && fileInfo.name" class="file-info">
+      <h3>Files Detected:</h3>
+      <ul>
+        <li class="file-name" *ngIf="fileInfo.name">{{ fileInfo.name }}</li>
+      </ul>
+      <p><strong>Size: </strong>{{ fileInfo.size }}</p>
+    </div>
+
+    <input #fileInput type="file" (change)="onFileSelected($event)" [attr.webkitdirectory]="uploadMode === 'folder' ? true : null" hidden />
+  </div>
+  <button mat-flat-button color="primary" class="upload-button">
+    Upload <mat-icon>arrow_upward</mat-icon>
+  </button>
+</div>

@@ -1,0 +1,48 @@
+.container {
+	display: flex;
+	position: relative;
+	width: 100vh;
+}
+
+.content {
+	margin-left: 50px;
+	padding: 20px;
+	z-index: 1;
+}
+
+.dashboard_content_buttons {
+	display: flex;
+	gap: 5px;
+	justify-content: flex-start;
+}
+
+.dashboard_header {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	width: 100%;
+	text-align: center;
+	margin: 0 auto 350px auto;
+}
+
+.searchbar {
+	flex: 0 1 auto;
+	min-width: 500px;
+	align-items: center;
+}
+
+.container {
+	background-color: '';
+}
+
+.suggested_files {
+	display: flex;
+	margin-top: 10px;
+	margin: 100px 75px auto;
+}
+
+button.mat-icon-button {
+	padding: 0;
+	margin-left: -35px;
+}

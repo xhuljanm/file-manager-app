@@ -1,0 +1,21 @@
+.container {
+	display: flex;
+	position: relative;
+	width: 100vh;
+}
+
+.content {
+	margin-left: 50px;
+	padding: 20px;
+	z-index: 1;
+}
+
+.custom-toolbar {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+
+	@media (max-width: 768px) {
+		display: none;
+	}
+}
