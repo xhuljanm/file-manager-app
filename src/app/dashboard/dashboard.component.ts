@@ -12,6 +12,7 @@ import { DragDropUploadComponent } from '../components/drag-drop-upload/drag-dro
 import { FileUploadService } from '../manager/services/file-upload.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,

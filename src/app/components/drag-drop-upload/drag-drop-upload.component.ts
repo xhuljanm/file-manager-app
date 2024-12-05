@@ -3,10 +3,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 @Component({
   selector: 'app-drag-drop-upload',
-  imports: [MatIconModule, MatButtonModule, CommonModule],
+  imports: [MatIconModule, MatButtonModule, MatProgressBarModule, CommonModule],
   templateUrl: './drag-drop-upload.component.html',
   styleUrls: ['./drag-drop-upload.component.scss'],
 })
@@ -59,6 +60,13 @@ export class DragDropUploadComponent {
   private processFolderUpload(items: DataTransferItem[], subfolders: string[]): void {
     const folderFiles: File[] = [];
     let processedItems = 0;
+    let totalItems = items.length;
+
+    // Handle empty drops
+    if (totalItems === 0) {
+      this.updateFileInfo([], []);
+      return;
+    }
 
     items.forEach(item => {
       if (item.webkitGetAsEntry) {
@@ -66,41 +74,87 @@ export class DragDropUploadComponent {
         if (entry?.isDirectory) {
           this.traverseDirectory(entry as FileSystemDirectoryEntry, folderFiles, subfolders, () => {
             processedItems++;
-            if (processedItems === items.length) this.updateFileInfo(folderFiles, subfolders);
+            if (processedItems === totalItems) { //Update the file info after all items are processed
+              this.updateFileInfo(folderFiles, subfolders);
+            }
           });
+        } else if (entry?.isFile) { // Handle files at root level
+          (entry as FileSystemFileEntry).file(file => {
+            folderFiles.push(file);
+            processedItems++;
+            if (processedItems === totalItems) this.updateFileInfo(folderFiles, subfolders);
+          });
+        } else { // Handle invalid items
+          processedItems++;
+          if (processedItems === totalItems) this.updateFileInfo(folderFiles, subfolders);
+
+        }
+      } else { // Handle items that don't support webkitGetAsEntry
+        processedItems++;
+        if (processedItems === totalItems) {
+          this.updateFileInfo(folderFiles, subfolders);
         }
       }
     });
+
+    setTimeout(() => { // safety timeout to update UI if some callbacks don't complete
+      if (folderFiles.length > 0 || subfolders.length > 0) this.updateFileInfo(folderFiles, subfolders);
+    }, 1000);
   }
 
   // Directory traversal
   private traverseDirectory(directory: FileSystemDirectoryEntry, files: File[], subfolders: string[], callback: () => void): void {
     const reader = directory.createReader();
-    reader.readEntries(entries => {
-      const entriesProcessed = entries.length;
-      let processedCount = 0;
 
-      if (entries.length === 0) {
-        callback();
-        return;
-      }
+    // Add the current directory to subfolders
+    if (!subfolders.includes(directory.fullPath)) subfolders.push(directory.fullPath);
 
-      entries.forEach(entry => {
-        if (entry.isFile) {
-          (entry as FileSystemFileEntry).file(file => {
-            files.push(file);
-            processedCount++;
-            if (processedCount === entriesProcessed) callback();
-          });
-        } else if (entry.isDirectory) {
-          subfolders.push(entry.fullPath);
-          this.traverseDirectory(entry as FileSystemDirectoryEntry, files, subfolders, () => {
-            processedCount++;
-            if (processedCount === entriesProcessed) callback();
-          });
+
+    const readNextBatch = () => {
+      reader.readEntries((entries) => {
+        if (entries.length === 0) { // If no more entries, process is complete for this directory
+          callback();
+          return;
         }
+
+        let processedCount = 0;
+        const totalEntries = entries.length;
+
+        entries.forEach((entry) => {
+          if (entry.isFile) {
+            (entry as FileSystemFileEntry).file((file) => {
+              files.push(file);
+              processedCount++;
+              if (processedCount === totalEntries) {
+                // Read next batch or finish if this was the last batch
+                readNextBatch();
+              }
+            });
+          } else if (entry.isDirectory) {
+            this.traverseDirectory(
+              entry as FileSystemDirectoryEntry,
+              files,
+              subfolders,
+              () => {
+                processedCount++;
+                if (processedCount === totalEntries) {
+                  // Read next batch or finish if this was the last batch
+                  readNextBatch();
+                }
+              }
+            );
+          } else {
+            processedCount++;
+            if (processedCount === totalEntries) {
+              // Read next batch or finish if this was the last batch
+              readNextBatch();
+            }
+          }
+        });
       });
-    });
+    };
+
+    readNextBatch(); // Start reading the directory
   }
 
   private processFiles(files: File[]): void { // Unified file processing
@@ -162,6 +216,7 @@ export class DragDropUploadComponent {
   }
 
   onFileSelected(event: Event): void {
+
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files || []);
     const folderStructure: { [key: string]: any } = {};

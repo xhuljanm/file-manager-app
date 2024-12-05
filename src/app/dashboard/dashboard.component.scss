@@ -33,7 +33,9 @@
 }
 
 .container {
-	background-color: '';
+	background-color: transparent;
+  display: flex;
+  flex-direction: column;
 }
 
 .suggested_files {

@@ -28,7 +28,7 @@
 
 .upload-button {
   position: absolute;
-  top: 375px;
+  top: 400px;
 }
 
 .upload-area {
@@ -77,6 +77,11 @@
   margin-top: 16px;
 }
 
+.upload-progress-bar {
+  position: absolute;
+  margin-top: 375px;
+}
+
 .file-details {
   margin-top: 16px;
   font-size: 14px;
@@ -108,6 +113,10 @@
 
 .file-info li span {
   color: #616161;
+}
+
+mat-progress-bar {
+  border-radius: 8px;
 }
 
 @media (max-width: 600px) {
