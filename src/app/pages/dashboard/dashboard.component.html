@@ -1,0 +1,65 @@
+<app-navbar></app-navbar>
+
+<div class="container mt-4">
+  <div class="navigation-bar mb-3 d-flex gap-2">
+    <button mat-button
+            [disabled]="!canGoBack()"
+            (click)="goBack()"
+            class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+      Back
+    </button>
+
+    <button mat-button [matMenuTriggerFor]="newMenu" class="new-button">
+      <mat-icon>add</mat-icon>
+      New
+    </button>
+
+    <button mat-button [disabled]="!canModify()" (click)="rename()">
+      <mat-icon>edit</mat-icon>
+      Rename
+    </button>
+
+    <button mat-button [disabled]="!canModify()" (click)="delete()">
+      <mat-icon>delete</mat-icon>
+      Delete
+    </button>
+  </div>
+
+  <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+    <!-- Files -->
+    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding
+                   class="file-node"
+                   (click)="onFileClick(node)"
+                   [class.selected]="selectedNode === node">
+      <div class="node-content">
+        <mat-icon class="me-2 file-icon">description</mat-icon>
+        <span>{{node.name}}</span>
+        <span class="ms-2 text-muted">({{formatFileSize(node.size)}})</span>
+      </div>
+    </mat-tree-node>
+
+    <!-- Folders -->
+    <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding
+                   class="folder-node"
+                   (click)="onFolderClick(node)"
+                   (dblclick)="onFolderDoubleClick(node)"
+                   [class.selected]="selectedNode === node">
+      <div class="node-content">
+        <mat-icon class="me-2 folder-icon">folder</mat-icon>
+        <span class="folder-name">{{node.name}}</span>
+      </div>
+    </mat-tree-node>
+  </mat-tree>
+</div>
+
+<mat-menu #newMenu="matMenu">
+  <button mat-menu-item (click)="createNewFolder()">
+    <mat-icon>create_new_folder</mat-icon>
+    <span>New Folder</span>
+  </button>
+  <button mat-menu-item (click)="createNewFile()">
+    <mat-icon>note_add</mat-icon>
+    <span>New File</span>
+  </button>
+</mat-menu>

@@ -1,0 +1,30 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  height: 56px;
+  background-color: white;
+}
+
+.search-field {
+  width: 400px;
+  padding-top: 10px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .action-button {
+    .button-text {
+      margin-left: 4px;
+    }
+  }
+}
+
+.mat-toolbar {
+  box-shadow: none;
+  border-bottom: none;
+}

@@ -1,0 +1,66 @@
+.mat-tree-node {
+  min-height: 40px;
+  padding-left: 16px;
+  width: 100%;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+
+  &.folder-node {
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+    }
+  }
+}
+
+.node-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.folder-icon {
+  color: #FFA000;
+}
+
+.file-icon {
+  color: #757575;
+}
+
+.folder-name {
+  font-weight: 500;
+}
+
+.navigation-bar {
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+}
+
+.back-button {
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.folder-node {
+  &.selected {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.file-node {
+  cursor: pointer;
+
+  &.selected {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}

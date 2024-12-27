@@ -1,0 +1,29 @@
+<div class="sidebar" [class.expanded]="isExpanded">
+  <div class="sidebar-header" [class.expanded]="isExpanded">
+    <h2>{{isExpanded ? 'File Manager' : 'FM'}}</h2>
+  </div>
+
+  <div class="sidebar-content">
+    <mat-nav-list>
+      <a mat-list-item
+         *ngFor="let item of menuItems"
+         [routerLink]="item.routerLink"
+         routerLinkActive="active"
+         [matTooltip]="!isExpanded ? item.tooltip : ''"
+         [matTooltipPosition]="'right'">
+        <mat-icon matListItemIcon>{{item.icon}}</mat-icon>
+        <span matListItemTitle *ngIf="isExpanded">{{item.text}}</span>
+      </a>
+    </mat-nav-list>
+  </div>
+
+  <div class="sidebar-footer">
+    <button mat-icon-button
+            class="collapse-btn"
+            (click)="toggleSidebar()"
+            [matTooltip]="isExpanded ? 'Collapse sidebar' : 'Expand sidebar'"
+            matTooltipPosition="right">
+      <mat-icon>{{isExpanded ? 'chevron_left' : 'chevron_right'}}</mat-icon>
+    </button>
+  </div>
+</div>
