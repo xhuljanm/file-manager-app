@@ -8,18 +8,9 @@ export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '', component: LayoutComponent,
     children: [
-      {
-        path: 'dashboard',
-        component: DashboardComponent
-      },
-      {
-        path: 'starred',
-        component: StarredComponent
-      },
-      {
-        path: 'trash',
-        component: TrashComponent
-      }
+      { path: 'dashboard', component: DashboardComponent },
+      { path: 'starred', component: StarredComponent },
+      { path: 'trash', component: TrashComponent }
     ]
   }
 ];

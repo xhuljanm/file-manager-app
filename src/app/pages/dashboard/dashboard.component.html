@@ -24,33 +24,40 @@
       <mat-icon>delete</mat-icon>
       Delete
     </button>
+
+    <button mat-button (click)="openFileUpload()">
+      <mat-icon>upload</mat-icon>
+      Upload
+    </button>
   </div>
 
-  <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
-    <!-- Files -->
-    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding
-                   class="file-node"
-                   (click)="onFileClick(node)"
-                   [class.selected]="selectedNode === node">
-      <div class="node-content">
-        <mat-icon class="me-2 file-icon">description</mat-icon>
-        <span>{{node.name}}</span>
-        <span class="ms-2 text-muted">({{formatFileSize(node.size)}})</span>
-      </div>
-    </mat-tree-node>
+  <div class="tree-container">
+    <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+      <!-- Files -->
+      <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding
+                     class="file-node"
+                     (click)="onFileClick(node)"
+                     [class.selected]="selectedNode === node">
+        <div class="node-content">
+          <mat-icon class="me-2 file-icon">description</mat-icon>
+          <span>{{node.name}}</span>
+          <span class="ms-2 text-muted">({{formatFileSize(node.size)}})</span>
+        </div>
+      </mat-tree-node>
 
-    <!-- Folders -->
-    <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding
-                   class="folder-node"
-                   (click)="onFolderClick(node)"
-                   (dblclick)="onFolderDoubleClick(node)"
-                   [class.selected]="selectedNode === node">
-      <div class="node-content">
-        <mat-icon class="me-2 folder-icon">folder</mat-icon>
-        <span class="folder-name">{{node.name}}</span>
-      </div>
-    </mat-tree-node>
-  </mat-tree>
+      <!-- Folders -->
+      <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding
+                     class="folder-node"
+                     (click)="onFolderClick(node)"
+                     (dblclick)="onFolderDoubleClick(node)"
+                     [class.selected]="selectedNode === node">
+        <div class="node-content">
+          <mat-icon class="me-2 folder-icon">folder</mat-icon>
+          <span class="folder-name">{{node.name}}</span>
+        </div>
+      </mat-tree-node>
+    </mat-tree>
+  </div>
 </div>
 
 <mat-menu #newMenu="matMenu">
@@ -63,3 +70,5 @@
     <span>New File</span>
   </button>
 </mat-menu>
+
+<app-file-upload-overlay *ngIf="uploadService.showOverlay$ | async"></app-file-upload-overlay>

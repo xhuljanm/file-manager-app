@@ -9,6 +9,11 @@ import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule, MatMenu } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { FileUploadService } from '../../services/file-upload.service';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatListModule } from '@angular/material/list';
+import { FileUploadOverlayComponent } from '../../components/file-upload-overlay/file-upload-overlay.component';
 
 interface FileNode {
   name: string;
@@ -32,7 +37,11 @@ interface FileNode {
     NavbarComponent,
     MatMenuModule,
     MatDialogModule,
-    MatDividerModule
+    MatDividerModule,
+    MatExpansionModule,
+    MatProgressBarModule,
+    MatListModule,
+    FileUploadOverlayComponent
   ]
 })
 export class DashboardComponent {
@@ -42,30 +51,81 @@ export class DashboardComponent {
   treeControl = new NestedTreeControl<FileNode>(node => node.children);
   @ViewChild('newMenu') newMenu!: MatMenu;
   selectedNode: FileNode | null = null;
+  showUploadSection = false;
+  isDragging = false;
 
-  constructor(private dialog: MatDialog) {
-    // Root level folders
-    const ROOT_DATA: FileNode[] = [
-      {
-        name: 'Documents',
-        type: 'folder',
-        children: [
-          { name: 'file1.pdf', type: 'file', size: 150000 },
-          { name: 'file2.doc', type: 'file', size: 250000 }
-        ]
-      },
-      {
-        name: 'Pictures',
-        type: 'folder',
-        children: [
-          { name: 'photo1.jpg', type: 'file', size: 350000 },
-          { name: 'photo2.png', type: 'file', size: 450000 }
-        ]
-      }
-    ];
+  constructor(
+    public uploadService: FileUploadService,
+    private fileUploadService: FileUploadService
+  ) {
+    // init with test data
+    const ROOT_DATA: FileNode[] = Array.from({ length: 20 }, (_, i) => ({
+      name: `Test Folder ${i + 1}`,
+      type: 'folder',
+      children: [
+        { name: `document${i + 1}.pdf`, type: 'file', size: 150000 },
+        { name: `image${i + 1}.jpg`, type: 'file', size: 250000 }
+      ]
+    }));
 
     this.currentFolder = ROOT_DATA;
     this.updateView();
+
+    // handle file uploads
+    this.fileUploadService.filesUploaded$.subscribe(files => {
+      files.forEach(file => {
+        const newFile: FileNode = {
+          name: file.name,
+          type: 'file',
+          size: file.size
+        };
+        this.currentFolder.push(newFile);
+      });
+      this.updateView();
+    });
+
+    // handle folder uploads
+    this.fileUploadService.foldersUploaded$.subscribe(({name, files}) => {
+      const folderStructure: { [key: string]: FileNode } = {};
+
+      const rootFolder: FileNode = {
+        name: name,
+        type: 'folder',
+        children: []
+      };
+
+      files.forEach(file => {
+        const pathParts = file.webkitRelativePath.split('/');
+        let currentLevel = rootFolder.children!;
+
+        // skip root folder name
+        for (let i = 1; i < pathParts.length; i++) {
+          const part = pathParts[i];
+
+          if (i === pathParts.length - 1) {
+            currentLevel.push({
+              name: part,
+              type: 'file',
+              size: file.size
+            });
+          } else {
+            let folder = currentLevel.find(node => node.name === part && node.type === 'folder');
+            if (!folder) {
+              folder = {
+                name: part,
+                type: 'folder',
+                children: []
+              };
+              currentLevel.push(folder);
+            }
+            currentLevel = folder.children!;
+          }
+        }
+      });
+
+      this.currentFolder.push(rootFolder);
+      this.updateView();
+    });
   }
 
   onFolderClick(node: FileNode): void {
@@ -117,7 +177,7 @@ export class DashboardComponent {
   createNewFolder(): void {
     const folderName = prompt('Enter folder name:');
     if (folderName) {
-      // Check if folder name already exists
+      // check for duplicates in current folder
       const folderExists = this.currentFolder.some(
         item => item.type === 'folder' && item.name === folderName
       );
@@ -146,10 +206,8 @@ export class DashboardComponent {
         return;
       }
 
-      // Check if file with same name and extension exists
-      const fileExists = this.currentFolder.some(
-        item => item.type === 'file' && item.name === fileName
-      );
+      // check for duplicates in current folder
+      const fileExists = this.currentFolder.some(item => item.type === 'file' && item.name === fileName);
 
       if (fileExists) {
         alert('A file with this name and extension already exists!');
@@ -169,7 +227,6 @@ export class DashboardComponent {
   rename(): void {
     if (this.selectedNode) {
       if (this.selectedNode.type === 'file') {
-        // For files, separate name and extension
         const lastDotIndex = this.selectedNode.name.lastIndexOf('.');
         const currentName = lastDotIndex !== -1 ? this.selectedNode.name.slice(0, lastDotIndex) : this.selectedNode.name;
         const extension = lastDotIndex !== -1 ? this.selectedNode.name.slice(lastDotIndex) : '';
@@ -180,7 +237,6 @@ export class DashboardComponent {
           this.updateView();
         }
       } else {
-        // For folders, keep existing behavior
         const newName = prompt('Enter new name:', this.selectedNode.name);
         if (newName && newName !== this.selectedNode.name) {
           this.selectedNode.name = newName;
@@ -202,5 +258,35 @@ export class DashboardComponent {
         }
       }
     }
+  }
+
+  onFileInput(event: Event): void {
+    const files = (event.target as HTMLInputElement).files;
+    if (files) {
+      this.uploadService.addFilesToQueue(Array.from(files));
+    }
+  }
+
+  onFolderInput(event: Event): void {
+    const files = (event.target as HTMLInputElement).files;
+    if (files) {
+      this.uploadService.addFolderToQueue(Array.from(files));
+    }
+  }
+
+  startUpload(): void {
+    this.uploadService.startUpload();
+  }
+
+  toggleUploadSection(): void {
+    this.showUploadSection = !this.showUploadSection;
+  }
+
+  openFileUpload(): void {
+    this.fileUploadService.openFileUpload();
+  }
+
+  onFolderOpen(folderId: string) {
+    this.fileUploadService.setCurrentFolderId(folderId);
   }
 }

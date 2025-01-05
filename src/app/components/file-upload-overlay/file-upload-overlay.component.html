@@ -1,0 +1,54 @@
+<div class="overlay"
+     [@fadeInOut]
+     (click)="closeOverlay($event)"
+     (dragover)="onDragOver($event)"
+     (dragleave)="onDragLeave($event)"
+     (drop)="onDrop($event)"
+     [class.dragging]="isDragging">
+  <div class="upload-container" (click)="$event.stopPropagation()">
+    <mat-icon class="upload-icon">cloud_upload</mat-icon>
+    <h2>Drag and drop files here</h2>
+    <p>or</p>
+    <button mat-raised-button color="warn" class="choose-button" (click)="triggerFileInput()">
+      <mat-icon>attach_file</mat-icon>
+      Choose Files
+    </button>
+    <input type="file"
+           #fileInput
+           hidden
+           multiple
+           (change)="onFileSelected($event)">
+    <input
+      type="file"
+      #folderInput
+      (change)="onFolderSelected($event)"
+      style="display: none"
+      webkitdirectory
+      directory
+    >
+    <button mat-raised-button color="primary" class="choose-button" (click)="folderInput.click()">
+      <mat-icon>folder</mat-icon>
+      Choose Folder
+    </button>
+
+    <!-- Preview Section -->
+    <div class="preview-section" *ngIf="selectedFiles.length > 0">
+      <h3>Selected Files:</h3>
+      <div class="file-list">
+        <div class="file-item" *ngFor="let file of selectedFiles">
+          <mat-icon>{{ getFileIcon(file) }}</mat-icon>
+          <span class="file-name">{{ file.name }}</span>
+          <span class="file-size">({{ formatFileSize(file.size) }})</span>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button mat-flat-button (click)="startUpload()">
+          Upload {{ selectedFiles.length }} {{ selectedFiles.length === 1 ? 'file' : 'files' }}
+        </button>
+        <button mat-raised-button color="primary" (click)="clearSelection()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

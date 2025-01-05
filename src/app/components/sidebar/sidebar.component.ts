@@ -1,14 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-// Material Imports
+import { RouterModule } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
 import { MatRippleModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-sidebar',
@@ -17,17 +15,17 @@ import { RouterModule } from '@angular/router';
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MatSidenavModule,
     MatIconModule,
     MatButtonModule,
     MatListModule,
     MatRippleModule,
-    MatTooltipModule,
-    RouterModule
+    MatTooltipModule
   ]
 })
 export class SidebarComponent {
-  isExpanded = true;
+  isExpanded = false;
 
   menuItems = [
     { icon: 'folder', text: 'Dashboard', tooltip: 'Dashboard', routerLink: '/dashboard' },
