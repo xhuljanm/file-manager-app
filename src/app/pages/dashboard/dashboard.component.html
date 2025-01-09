@@ -2,10 +2,7 @@
 
 <div class="container mt-4">
   <div class="navigation-bar mb-3 d-flex gap-2">
-    <button mat-button
-            [disabled]="!canGoBack()"
-            (click)="goBack()"
-            class="back-button">
+    <button mat-button [disabled]="!canGoBack()" (click)="goBack()" class="back-button">
       <mat-icon>arrow_back</mat-icon>
       Back
     </button>
@@ -20,9 +17,7 @@
       Upload
     </button>
 
-    <button mat-button
-        (click)="toggleMultiSelectMode()"
-        class="multi-select-button">
+    <button mat-button (click)="toggleMultiSelectMode()" class="multi-select-button">
       <mat-icon>{{ isMultiSelectMode ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
       {{ isMultiSelectMode ? 'Deselect' : 'Select' }}
     </button>
@@ -40,13 +35,12 @@
     <div class="breadcrumb-nav mb-3">
       <div class="breadcrumb-list">
         <ng-container *ngFor="let crumb of breadcrumbs; let last = last; let i = index">
-          <a href="#"
-             *ngIf="!last"
-             (click)="$event.preventDefault(); navigateToBreadcrumb(i)"
-             class="breadcrumb-item">
+          <a href="#" *ngIf="!last" (click)="$event.preventDefault(); navigateToBreadcrumb(i)" class="breadcrumb-item">
             {{ crumb.name }}
           </a>
-          <span *ngIf="last" class="breadcrumb-item current">{{ crumb.name }}</span>
+          <span *ngIf="last" class="breadcrumb-item current">
+            {{ crumb.name }}
+          </span>
           <span *ngIf="!last" class="separator">/</span>
         </ng-container>
       </div>
@@ -57,13 +51,15 @@
     <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" cdkDropList (cdkDropListDropped)="onDrop($event)">
       <!-- For Files -->
       <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding class="file-node">
-        <div class="node-content"
-            [class.selected]="isMultiSelectMode ? selectedNodes.has(node) : selectedNode === node"
-            (click)="isMultiSelectMode ? toggleNodeSelection(node, $event) : selectNode(node)">
-          <mat-checkbox *ngIf="isMultiSelectMode"
-                      [checked]="selectedNodes.has(node)"
-                      (click)="$event.stopPropagation()"
-                      (change)="selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node)">
+        <div
+          class="file-node-content"
+          [class.selected]="isMultiSelectMode ? selectedNodes.has(node) : selectedNode === node"
+          (click)="isMultiSelectMode ? toggleNodeSelection(node, $event) : selectNode(node)">
+          <mat-checkbox
+            *ngIf="isMultiSelectMode"
+            [checked]="selectedNodes.has(node)"
+            (click)="$event.stopPropagation()"
+            (change)="selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node)">
           </mat-checkbox>
           <mat-icon class="me-2 file-icon">description</mat-icon>
           <span>{{ node.name }}</span>
@@ -72,24 +68,25 @@
       </mat-tree-node>
 
       <!-- For Folders -->
-      <mat-tree-node *matTreeNodeDef="let node; when: hasChild"
-                    matTreeNodePadding
-                    class="folder-node"
-                    cdkDrag
-                    [class.selected]="isMultiSelectMode ? selectedNodes.has(node) : selectedNode === node"
-                    (click)="isMultiSelectMode ? toggleNodeSelection(node, $event) : selectNode(node)"
-                    (dblclick)="onFolderDoubleClick(node)">
+      <mat-tree-node
+        *matTreeNodeDef="let node; when: hasChild"
+        matTreeNodePadding
+        class="folder-node"
+        cdkDrag
+        [class.selected]="isMultiSelectMode ? selectedNodes.has(node) : selectedNode === node"
+        (click)="isMultiSelectMode ? toggleNodeSelection(node, $event) : selectNode(node)"
+        (dblclick)="onFolderDoubleClick(node)">
         <div class="node-content">
-          <mat-checkbox *ngIf="isMultiSelectMode"
-                      [checked]="selectedNodes.has(node)"
-                      (click)="$event.stopPropagation()"
-                      (change)="selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node)">
+          <mat-checkbox
+            *ngIf="isMultiSelectMode"
+            [checked]="selectedNodes.has(node)"
+            (click)="$event.stopPropagation()"
+            (change)="selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node)">
           </mat-checkbox>
           <mat-icon class="me-2 folder-icon">folder</mat-icon>
           <span class="folder-name">{{ node.name }}</span>
         </div>
       </mat-tree-node>
-
     </mat-tree>
   </div>
 </div>

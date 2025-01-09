@@ -1,30 +1,27 @@
 import { Component, ViewChild, HostListener } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
 import { MatTreeNestedDataSource } from '@angular/material/tree';
 import { NestedTreeControl } from '@angular/cdk/tree';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+
 import { MatTreeModule } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { CommonModule } from '@angular/common';
-import { NavbarComponent } from '../../components/navbar/navbar.component';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule, MatMenu } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
-import { FileUploadService } from '../../services/file-upload.service';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatListModule } from '@angular/material/list';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
-import { FileUploadOverlayComponent } from '../../components/file-upload-overlay/file-upload-overlay.component';
 
-interface FileNode {
-  name: string;
-  type: 'folder' | 'file';
-  size?: number;
-  buffer?: ArrayBuffer;
-  children?: FileNode[];
-  loaded?: boolean;
-}
+import { NavbarComponent } from '../../components/navbar/navbar.component';
+import { FileUploadOverlayComponent } from '../../components/file-upload-overlay/file-upload-overlay.component';
+import { FileUploadService } from '../../services/file-upload/file-upload.service';
+
+import { FileUtils } from '../../utils/file.utils';
+import { FileNode } from '../../models/file.model';
 
 interface Breadcrumb {
   name: string;
@@ -67,10 +64,7 @@ export class DashboardComponent {
   showUploadSection = false;
   isDragging = false;
 
-  constructor(
-    public uploadService: FileUploadService,
-    private fileUploadService: FileUploadService
-  ) {
+  constructor(public uploadService: FileUploadService, private fileUploadService: FileUploadService) {
     // init with test data
     const ROOT_DATA: FileNode[] = Array.from({ length: 20 }, (_, i) => ({
       name: `Test Folder ${i + 1}`,
@@ -84,22 +78,17 @@ export class DashboardComponent {
     this.currentFolder = ROOT_DATA;
     this.updateView();
 
-    // handle file uploads
+    //handle file uploads
     this.fileUploadService.filesUploaded$.subscribe(files => {
       files.forEach(file => {
-        const newFile: FileNode = {
-          name: file.name,
-          type: 'file',
-          size: file.size
-        };
+        const newFile: FileNode = { name: file.name, type: 'file', size: file.size };
         this.currentFolder.push(newFile);
       });
       this.updateView();
     });
 
-    // handle folder uploads
+    //handle folder uploads
     this.fileUploadService.foldersUploaded$.subscribe(({name, files}) => {
-      const folderStructure: { [key: string]: FileNode } = {};
 
       const rootFolder: FileNode = {
         name: name,
@@ -111,26 +100,19 @@ export class DashboardComponent {
         const pathParts = file.webkitRelativePath.split('/');
         let currentLevel = rootFolder.children!;
 
-        // skip root folder name
+        //skip root folder name
         for (let i = 1; i < pathParts.length; i++) {
           const part = pathParts[i];
 
           if (i === pathParts.length - 1) {
-            currentLevel.push({
-              name: part,
-              type: 'file',
-              size: file.size
-            });
+            currentLevel.push({ name: part, type: 'file', size: file.size });
           } else {
             let folder = currentLevel.find(node => node.name === part && node.type === 'folder');
             if (!folder) {
-              folder = {
-                name: part,
-                type: 'folder',
-                children: []
-              };
+              folder = { name: part, type: 'folder', children: [] };
               currentLevel.push(folder);
             }
+
             currentLevel = folder.children!;
           }
         }
@@ -141,7 +123,7 @@ export class DashboardComponent {
     });
 
     this.breadcrumbs = [{
-      name: 'Root',
+      name: 'My Drive',
       node: this.currentFolder,
       index: 0
     }];
@@ -150,7 +132,7 @@ export class DashboardComponent {
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent): void {
     if ((event.ctrlKey || event.metaKey) && event.key === 'a') { //ctrl + a to select all folders/files
-      event.preventDefault(); // Prevent default browser select all
+      event.preventDefault(); //prevent default browser select all
       this.selectAllNodes();
     }
 
@@ -158,16 +140,14 @@ export class DashboardComponent {
       this.isMultiSelectMode = false;
       this.selectedNode = null;
       this.selectedNodes.clear();
-
     }
-    if (event.key === 'Delete') this.delete();
 
+    if (event.key === 'Delete') this.delete();
   }
 
   selectAllNodes(): void {
     this.isMultiSelectMode = true;
     this.selectedNodes.clear();
-
     this.currentFolder.forEach(node => this.selectedNodes.add(node));
   }
 
@@ -228,14 +208,6 @@ export class DashboardComponent {
     this.dataSource.data = [...this.currentFolder];
   }
 
-  formatFileSize(bytes?: number): string {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-  }
-
   onFileClick(node: FileNode): void {
     this.selectedNode = node;
   }
@@ -245,10 +217,8 @@ export class DashboardComponent {
   createNewFolder(): void {
     const folderName = prompt('Enter folder name:');
     if (folderName) {
-      // check for duplicates in current folder
-      const folderExists = this.currentFolder.some(
-        item => item.type === 'folder' && item.name === folderName
-      );
+      //check for duplicates in current folder
+      const folderExists = this.currentFolder.some(item => item.type === 'folder' && item.name === folderName);
 
       if (folderExists) {
         alert('A folder with this name already exists!');
@@ -260,6 +230,7 @@ export class DashboardComponent {
         type: 'folder',
         children: []
       };
+
       this.currentFolder.push(newFolder);
       this.updateView();
     }
@@ -274,7 +245,7 @@ export class DashboardComponent {
         return;
       }
 
-      // check for duplicates in current folder
+      //check for duplicates in current folder
       const fileExists = this.currentFolder.some(item => item.type === 'file' && item.name === fileName);
 
       if (fileExists) {
@@ -287,9 +258,14 @@ export class DashboardComponent {
         type: 'file',
         size: 0
       };
+
       this.currentFolder.push(newFile);
       this.updateView();
     }
+  }
+
+  formatFileSize(bytes: number): string {
+    return FileUtils.formatFileSize(bytes);
   }
 
   rename(): void {
@@ -315,9 +291,7 @@ export class DashboardComponent {
   }
 
   delete(): void {
-    const itemsToDelete = this.isMultiSelectMode ?
-      this.selectedNodes.size :
-      (this.selectedNode ? 1 : 0);
+    const itemsToDelete = this.isMultiSelectMode ? this.selectedNodes.size : (this.selectedNode ? 1 : 0);
 
     if (itemsToDelete > 0) {
       const confirmMessage = itemsToDelete === 1 ? 'Are you sure you want to delete this item?' : `Are you sure you want to delete ${itemsToDelete} items?`;
@@ -354,7 +328,6 @@ export class DashboardComponent {
     return this.isMultiSelectMode ? this.selectedNodes.size > 0 : !!this.selectedNode;
   }
 
-
   onDrop(event: CdkDragDrop<FileNode[]>): void {
     if (event.previousIndex !== event.currentIndex) {
       moveItemInArray(this.currentFolder, event.previousIndex, event.currentIndex);
@@ -364,16 +337,12 @@ export class DashboardComponent {
 
   onFileInput(event: Event): void {
     const files = (event.target as HTMLInputElement).files;
-    if (files) {
-      this.uploadService.addFilesToQueue(Array.from(files));
-    }
+    if (files) this.uploadService.addFilesToQueue(Array.from(files));
   }
 
   onFolderInput(event: Event): void {
     const files = (event.target as HTMLInputElement).files;
-    if (files) {
-      this.uploadService.addFolderToQueue(Array.from(files));
-    }
+    if (files) this.uploadService.addFolderToQueue(Array.from(files));
   }
 
   startUpload(): void {
