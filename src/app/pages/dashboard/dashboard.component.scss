@@ -1,6 +1,6 @@
 .mat-tree-node {
   min-height: 40px;
-  padding-left: 16px;
+  padding-left: 40px;
   width: 100%;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 
@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 8px 0;
+  position: relative;
 }
 
 .folder-icon {
@@ -65,9 +65,31 @@
   }
 }
 
+.cdk-drag-preview {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+
+  .folder-icon,
+  .file-icon {
+    margin-right: 8px;
+  }
+}
+
+.cdk-drag-placeholder {
+  background: rgba(0, 0, 0, 0.04);
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  min-height: 40px;
+}
+
 .dashboard-container {
   padding: 20px;
-  height: calc(100vh - 64px); // Adjust based on your navbar height
+  height: calc(100vh - 64px); // based on navbar height
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -83,6 +105,17 @@
     display: flex;
     gap: 12px;
   }
+}
+
+.mat-checkbox {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+}
+
+.folder-icon, .file-icon {
+  margin-right: 8px;
 }
 
 .upload-queue-panel {
@@ -131,9 +164,50 @@
 }
 
 .tree-container {
-  height: calc(100vh - 180px); // Adjust for navbar and navigation bar height
+  height: calc(100vh - 180px); // navbar and navigation bar height
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.breadcrumb-nav {
+  background-color: transparent;
+  padding: 8px 16px;
+  border-radius: 4px;
+
+  .breadcrumb-list {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    -ms-overflow-style: none;  /* Hide scrollbar for IE and Edge */
+    scrollbar-width: none;     /* Hide scrollbar for Firefox */
+
+    &::-webkit-scrollbar {     /* Hide scrollbar for Chrome/Safari */
+      display: none;
+    }
+  }
+
+  .breadcrumb-item {
+    color: #2196f3;
+    text-decoration: none;
+    font-size: 14px;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &.current {
+      color: #666;
+      font-weight: 500;
+    }
+  }
+
+  .separator {
+    color: #999;
+    margin: 0 8px;
+    user-select: none;
+  }
 }
 
 // Responsive adjustments

@@ -1,6 +1,7 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, HostListener } from '@angular/core';
 import { MatTreeNestedDataSource } from '@angular/material/tree';
 import { NestedTreeControl } from '@angular/cdk/tree';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,6 +14,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { FileUploadService } from '../../services/file-upload.service';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatListModule } from '@angular/material/list';
+import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { FileUploadOverlayComponent } from '../../components/file-upload-overlay/file-upload-overlay.component';
 
 interface FileNode {
@@ -22,6 +24,12 @@ interface FileNode {
   buffer?: ArrayBuffer;
   children?: FileNode[];
   loaded?: boolean;
+}
+
+interface Breadcrumb {
+  name: string;
+  node: FileNode[];
+  index: number;
 }
 
 @Component({
@@ -41,12 +49,17 @@ interface FileNode {
     MatExpansionModule,
     MatProgressBarModule,
     MatListModule,
+    DragDropModule,
+    MatCheckboxModule,
     FileUploadOverlayComponent
   ]
 })
 export class DashboardComponent {
   currentFolder: FileNode[] = [];
+  selectedNodes: Set<FileNode> = new Set();
+  isMultiSelectMode: boolean = false;
   navigationStack: FileNode[][] = [];
+  breadcrumbs: Breadcrumb[] = [];
   dataSource = new MatTreeNestedDataSource<FileNode>();
   treeControl = new NestedTreeControl<FileNode>(node => node.children);
   @ViewChild('newMenu') newMenu!: MatMenu;
@@ -126,6 +139,40 @@ export class DashboardComponent {
       this.currentFolder.push(rootFolder);
       this.updateView();
     });
+
+    this.breadcrumbs = [{
+      name: 'Root',
+      node: this.currentFolder,
+      index: 0
+    }];
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'a') { //ctrl + a to select all folders/files
+      event.preventDefault(); // Prevent default browser select all
+      this.selectAllNodes();
+    }
+
+    if (event.key === 'Escape') {
+      this.isMultiSelectMode = false;
+      this.selectedNode = null;
+      this.selectedNodes.clear();
+
+    }
+    if (event.key === 'Delete') this.delete();
+
+  }
+
+  selectAllNodes(): void {
+    this.isMultiSelectMode = true;
+    this.selectedNodes.clear();
+
+    this.currentFolder.forEach(node => this.selectedNodes.add(node));
+  }
+
+  areAllNodesSelected(): boolean {
+    return this.currentFolder.length > 0 && this.selectedNodes.size === this.currentFolder.length;
   }
 
   onFolderClick(node: FileNode): void {
@@ -136,24 +183,45 @@ export class DashboardComponent {
     if (node.type === 'folder') {
       this.navigationStack.push(this.currentFolder);
       this.currentFolder = node.children || [];
+      this.breadcrumbs.push({
+        name: node.name,
+        node: this.currentFolder,
+        index: this.breadcrumbs.length
+      });
       this.updateView();
       this.selectedNode = null;
     }
   }
 
+  selectNode(node: FileNode): void {
+    this.selectedNode = node;
+  }
+
   canModify(): boolean {
-    return this.selectedNode !== null;
+    return this.selectedNodes.size > 0;
   }
 
   goBack(): void {
     if (this.navigationStack.length > 0) {
       this.currentFolder = this.navigationStack.pop()!;
+      this.breadcrumbs.pop();
       this.updateView();
     }
   }
 
   canGoBack(): boolean {
     return this.navigationStack.length > 0;
+  }
+
+  navigateToBreadcrumb(index: number): void {
+    if (index < this.breadcrumbs.length) {
+      this.breadcrumbs = this.breadcrumbs.slice(0, index + 1); // remove all breadcrumbs after the clicked one
+      this.navigationStack = this.navigationStack.slice(0, index); // update navigation stack
+
+      this.currentFolder = this.breadcrumbs[index].node; //update current folder
+      this.updateView();
+      this.selectedNode = null;
+    }
   }
 
   private updateView(): void {
@@ -247,16 +315,50 @@ export class DashboardComponent {
   }
 
   delete(): void {
-    if (this.selectedNode) {
-      const confirmDelete = confirm(`Are you sure you want to delete "${this.selectedNode.name}"?`);
+    const itemsToDelete = this.isMultiSelectMode ?
+      this.selectedNodes.size :
+      (this.selectedNode ? 1 : 0);
+
+    if (itemsToDelete > 0) {
+      const confirmMessage = itemsToDelete === 1 ? 'Are you sure you want to delete this item?' : `Are you sure you want to delete ${itemsToDelete} items?`;
+      const confirmDelete = confirm(confirmMessage);
+
       if (confirmDelete) {
-        const index = this.currentFolder.indexOf(this.selectedNode);
-        if (index > -1) {
-          this.currentFolder.splice(index, 1);
+        if (this.isMultiSelectMode) {
+          this.currentFolder = this.currentFolder.filter(item => !this.selectedNodes.has(item));
+          this.selectedNodes.clear();
+        } else {
+          this.currentFolder = this.currentFolder.filter(item => item !== this.selectedNode);
           this.selectedNode = null;
-          this.updateView();
         }
+        this.updateView();
       }
+    }
+  }
+
+  toggleNodeSelection(node: FileNode, event: MouseEvent | MatCheckboxChange): void {
+    if (event instanceof MouseEvent) event.stopPropagation();
+
+    if (this.selectedNodes.has(node)) this.selectedNodes.delete(node);
+    else this.selectedNodes.add(node);
+  }
+
+  toggleMultiSelectMode(): void {
+    this.isMultiSelectMode = !this.isMultiSelectMode;
+    if (!this.isMultiSelectMode) this.selectedNodes.clear();
+
+    this.selectedNode = null;
+  }
+
+  canDelete(): boolean {
+    return this.isMultiSelectMode ? this.selectedNodes.size > 0 : !!this.selectedNode;
+  }
+
+
+  onDrop(event: CdkDragDrop<FileNode[]>): void {
+    if (event.previousIndex !== event.currentIndex) {
+      moveItemInArray(this.currentFolder, event.previousIndex, event.currentIndex);
+      this.updateView();
     }
   }
 
