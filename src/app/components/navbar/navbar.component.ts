@@ -1,5 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+
+import { AuthService } from '../../services/auth/auth.service';
+
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,5 +26,11 @@ import { FormsModule } from '@angular/forms';
   styleUrls: ['./navbar.component.scss']
 })
 export class NavbarComponent {
-searchText: any;
+  searchText: string = '';
+
+  constructor(private authService: AuthService) {}
+
+  logout(): void {
+    this.authService.logout();
+  }
 }

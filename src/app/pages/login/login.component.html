@@ -1,0 +1,50 @@
+<div class="login-container">
+  <mat-card>
+      <mat-card-header>
+          <mat-card-title>Login</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()">
+              <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Email</mat-label>
+                  <input matInput formControlName="email" type="email" placeholder="Enter your email">
+                  <mat-error *ngIf="form.get('email')?.invalid">
+                      {{getErrorMessage('email')}}
+                  </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Password</mat-label>
+                  <input matInput formControlName="password" [type]="hidePassword ? 'password' : 'text'">
+                  <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
+                      <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+                  </button>
+                  <mat-error *ngIf="form.get('password')?.invalid">
+                      {{getErrorMessage('password')}}
+                  </mat-error>
+              </mat-form-field>
+
+              <div class="button-container">
+                <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isLoggingIn">
+                  <mat-spinner diameter="20" *ngIf="isLoggingIn"></mat-spinner>
+                <span *ngIf="!isLoggingIn">Login</span>
+              </button>
+              </div>
+          </form>
+
+          <div *ngIf="showSuccessMessage" class="success-message">
+              Login successful! Redirecting...
+          </div>
+
+          <div *ngIf="showErrorMessage" class="error-message">
+              {{errorMessage}}
+          </div>
+
+          <div class="register-section">
+              <span>Don't have an account?</span>
+              <a mat-button color="primary" routerLink="/register">Register</a>
+          </div>
+      </mat-card-content>
+  </mat-card>
+</div>

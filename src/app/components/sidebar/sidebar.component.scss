@@ -1,13 +1,24 @@
+$sidebar-width: 280px;
+$sidebar-collapsed-width: 76px;
+$border-color: rgba(28, 28, 28, 0.08);
+$text-color: #1f1f1f;
+$hover-bg: rgba(0, 0, 0, 0.03);
+$active-bg: rgba(25, 103, 210, 0.09);
+$active-color: #1967d2;
+$icon-size: 24px;
+$icon-color: #606367;
+
 .sidebar {
-  width: 260px;
-  background-color: #ffffff;
+  width: $sidebar-width;
   height: 100vh;
-  transition: width 0.3s ease;
-  border-right: 1px solid #dadce0;
+  background-color: #ffffff;
+  border-right: 1px solid $border-color;
   position: relative;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.05);
 
   &:not(.expanded) {
-    width: 72px;
+    width: $sidebar-collapsed-width;
 
     .new-button {
       min-width: 48px;
@@ -22,18 +33,18 @@
 
 .sidebar-header {
   height: 64px;
+  padding: 8px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
 
   h2 {
     margin: 0;
-    white-space: nowrap;
     font-size: 18px;
     font-weight: 500;
-    color: #202124;
-    letter-spacing: 0.25px;
+    color: $text-color;
+    letter-spacing: 0.15px;
+    white-space: nowrap;
     user-select: none;
   }
 
@@ -43,50 +54,60 @@
 }
 
 .sidebar-content {
-  padding: 8px;
+  padding: 12px;
 }
 
 .new-button {
   width: 100%;
-  margin-top: 8px;
-  margin-bottom: 8px;
+  margin: 8px 0;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 24px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
 
   mat-icon {
     margin: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    height: $icon-size;
+    width: $icon-size;
     line-height: 0;
-    height: 24px;
-    width: 24px;
+    color: $icon-color;
   }
 
   &.icon-only {
-    min-width: 40px;
+    min-width: 44px;
     padding: 0;
 
     mat-icon {
       margin: 0;
     }
   }
+
+  &:hover {
+    background-color: $hover-bg;
+  }
 }
 
 mat-nav-list {
   a {
-    border-radius: 0 16px 16px 0;
+    border-radius: 0 28px 28px 0;
     margin: 4px 0;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
 
     &:hover {
-      background-color: #f1f3f4;
+      background-color: $hover-bg;
     }
 
     &.active {
-      background-color: #e8f0fe;
-      color: #1a73e8;
+      background-color: $active-bg;
+      color: $active-color;
+      font-weight: 500;
     }
   }
 }
@@ -98,17 +119,18 @@ mat-nav-list {
   z-index: 2;
 
   .collapse-btn {
-    background-color: #fff;
-    border: 1px solid #dadce0;
-    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3),
-                0 1px 3px 1px rgba(60,64,67,0.15);
+    background-color: #ffffff;
+    border: 1px solid $border-color;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px 0 rgba(60,64,67,0.08), 0 1px 6px 2px rgba(60,64,67,0.04);
+    transition: box-shadow 0.2s ease;
 
     &:hover {
-      background-color: #f1f3f4;
+      box-shadow: 0 3px 6px 0 rgba(60,64,67,0.12), 0 2px 8px 3px rgba(60,64,67,0.08);
     }
 
     mat-icon {
-      color: #5f6368;
+      color: $icon-color;
       font-size: 20px;
       height: 20px;
       width: 20px;
@@ -118,8 +140,7 @@ mat-nav-list {
 }
 
 .sidebar-divider {
-  margin: 8px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
   width: calc(100% - 32px);
-  margin-left: 16px;
+  margin: 12px 16px;
+  border-top: 1px solid $border-color;
 }
