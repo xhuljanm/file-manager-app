@@ -1,31 +1,11 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { IndexedDBService } from '../indexed-db/indexed-db.service';
+import { HttpClient } from '@angular/common/http';
 
-interface UploadItem {
-  path: string;
-  type: 'file' | 'folder';
-  status: 'pending' | 'uploading' | 'completed' | 'error';
-  progress?: number;
-  error?: string;
-  file?: File;
-  isFolder?: boolean;
-  relativePath?: string;
-}
-
-export interface FileNode {
-  name: string;
-  type: 'folder' | 'file';
-  size?: number;
-}
-
-export interface FolderUpload {
-  name: string;
-  files: File[];
-  totalSize: number;
-  fileCount: number;
-}
-
+import { UploadItem } from '../../models/file.model';
+import { FileNode } from '../../models/file.model';
+import { FolderUpload } from '../../models/file.model';
 
 @Injectable({
   providedIn: 'root'
@@ -35,7 +15,7 @@ export class FileUploadService {
   uploadQueue$ = this.uploadQueue.asObservable();
   private showOverlay = new BehaviorSubject<boolean>(false);
   showOverlay$ = this.showOverlay.asObservable();
-  private currentFolderId: string | null = null;
+  private currentFolderId: number | null = null;
   private currentFiles = new BehaviorSubject<FileNode[]>([]);
   currentFiles$ = this.currentFiles.asObservable();
 
@@ -51,13 +31,31 @@ export class FileUploadService {
   private isUploading = new BehaviorSubject<boolean>(false);
   isUploading$ = this.isUploading.asObservable();
 
-  constructor(private indexedDBService: IndexedDBService) {}
+  constructor(
+    private indexedDBService: IndexedDBService,
+    private http: HttpClient
+  ) {}
 
-  setCurrentFolderId(folderId: string | null) {
+  // Convert File to base64
+  private async fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        // Remove the data:*/*;base64, prefix
+        const base64Content = base64String.split(',')[1];
+        resolve(base64Content);
+      };
+      reader.onerror = error => reject(error);
+    });
+  }
+
+  setCurrentFolderId(folderId: number | null) {
     this.currentFolderId = folderId;
   }
 
-  getCurrentFolderId(): string | null {
+  getCurrentFolderId(): number | null {
     return this.currentFolderId;
   }
 
@@ -65,7 +63,11 @@ export class FileUploadService {
     this.currentFiles.next(files);
   }
 
-  async addFilesToQueue(files: File[], parentId: string | null = null): Promise<void> {
+  private getFileExtension(filename: string): string {
+    return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
+  }
+
+  async addFilesToQueue(files: File[], parentId: number | null = null): Promise<void> {
     this.isUploading.next(true);
 
     try {
@@ -77,6 +79,26 @@ export class FileUploadService {
       }));
 
       this.uploadQueue.next([...this.uploadQueue.value, ...items]);
+
+      // Upload files to the API
+      const uploadPromises = files.map(async file => {
+        const base64Data = await this.fileToBase64(file);
+        const userId = parseInt(localStorage.getItem('user_id') || '0', 10);
+
+        console.log(this.currentFolderId, parentId)
+        const fileData = {
+          name: file.name,
+          fileType: this.getFileExtension(file.name),
+          fileSize: file.size,
+          fileData: base64Data,
+          userId: userId,
+          folderId: parentId
+        };
+
+        return this.http.post('https://localhost:7089/api/File', fileData).toPromise();
+      });
+
+      await Promise.all(uploadPromises);
 
       const completedItems = items.map(item => ({
         ...item,
@@ -119,6 +141,26 @@ export class FileUploadService {
       }));
 
       this.uploadQueue.next([...this.uploadQueue.value, ...items]);
+
+      // Upload files to the API
+      const uploadPromises = files.map(async file => {
+        const base64Data = await this.fileToBase64(file);
+        const userId = parseInt(localStorage.getItem('user_id') || '0', 10);
+
+        const fileData = {
+          id: 0,
+          name: file.name,
+          fileType: this.getFileExtension(file.name),
+          fileSize: file.size,
+          fileData: base64Data,
+          userId: userId,
+          folderId: this.currentFolderId ? this.currentFolderId : 0
+        };
+
+        return this.http.post('https://localhost:7089/api/File', fileData).toPromise();
+      });
+
+      await Promise.all(uploadPromises);
 
       const completedItems = items.map(item => ({
         ...item,

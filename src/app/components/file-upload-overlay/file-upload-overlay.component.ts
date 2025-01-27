@@ -1,15 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { animate, style, transition, trigger } from '@angular/animations';
-
 import { FileUploadService } from '../../services/file-upload/file-upload.service';
 import { IndexedDBService } from '../../services/indexed-db/indexed-db.service';
-
 import { FileNode } from '../../models/file.model';
 import { FileUtils } from '../../utils/file.utils';
 
@@ -31,7 +28,7 @@ export class FileUploadOverlayComponent {
   isFileUpload = false;
   isFolderUpload = false;
   selectedFiles: File[] = [];
-  currentFolderId: string | null = null;
+  currentFolderId: number | null = null;
   existingFiles: string[] = [];
   folderInfo: {
     name: string;
@@ -45,7 +42,6 @@ export class FileUploadOverlayComponent {
       this.existingFiles = files.map(f => f.name);
     });
 
-    //subscribe to folder uploads
     this.fileUploadService.folderUploads$.subscribe(folderUpload => {
       this.folderInfo = {
         name: folderUpload.name,
@@ -53,6 +49,35 @@ export class FileUploadOverlayComponent {
         fileCount: folderUpload.fileCount
       };
     });
+
+  }
+
+  private async handleFileUpload(files: File[], isFolder: boolean = false): Promise<void> {
+    try {
+      const { hasDupes, dupeFiles } = this.hasDuplicates(files);
+      if (hasDupes) {
+        alert(`Cannot upload duplicate files: ${dupeFiles.join(', ')}`);
+        return;
+      }
+
+      if (isFolder && files.length > 0) {
+        const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+        const folderName = files[0].webkitRelativePath.split('/')[0];
+
+        this.folderInfo = {
+          name: folderName,
+          totalSize: totalSize,
+          fileCount: files.length
+        };
+      }
+
+      await this.indexedDBService.saveFilesToIndexedDB(files);
+      this.selectedFiles = files;
+
+    } catch (error) {
+      console.error('Error processing files:', error);
+      alert('Failed to process files. Please try again.');
+    }
   }
 
   private hasDuplicates(files: File[]): { hasDupes: boolean; dupeFiles: string[] } {
@@ -63,6 +88,19 @@ export class FileUploadOverlayComponent {
       }
     });
     return { hasDupes: dupeFiles.length > 0, dupeFiles };
+  }
+
+  private async fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        const base64Content = base64String.split(',')[1];
+        resolve(base64Content);
+      };
+      reader.onerror = error => reject(error);
+    });
   }
 
   onDragOver(event: DragEvent): void {
@@ -80,7 +118,6 @@ export class FileUploadOverlayComponent {
   async onDrop(event: DragEvent): Promise<void> {
     event.preventDefault();
     this.isDragging = false;
-
     this.clearSelection();
 
     const items = event.dataTransfer?.items;
@@ -88,6 +125,7 @@ export class FileUploadOverlayComponent {
 
     try {
       let fileArray: File[] = [];
+      let isFolder = false;
 
       for (const item of Array.from(items)) {
         if (item.kind === 'file') {
@@ -97,31 +135,15 @@ export class FileUploadOverlayComponent {
               const file = item.getAsFile();
               if (file) fileArray.push(file);
             } else if (entry.isDirectory) {
+              isFolder = true;
               const { files, totalSize } = await this.readFolderContents(entry as FileSystemDirectoryEntry);
               fileArray = fileArray.concat(files);
-
-              //set folder info
-              this.folderInfo = {
-                name: entry.name,
-                totalSize: totalSize,
-                fileCount: files.length
-              };
             }
           }
         }
       }
 
-      //check for duplicates
-      const { hasDupes, dupeFiles } = this.hasDuplicates(fileArray);
-      if (hasDupes) {
-        alert(`Cannot upload duplicate files: ${dupeFiles.join(', ')}`);
-        return;
-      }
-
-      await this.indexedDBService.saveFilesToIndexedDB(fileArray); //upload to IndexedDB with progress tracking
-
-      //only setting selected files after successful IndexedDB upload
-      this.selectedFiles = fileArray;
+      await this.handleFileUpload(fileArray, isFolder);
 
     } catch (error) {
       console.error('Error processing dropped items:', error);
@@ -190,19 +212,22 @@ export class FileUploadOverlayComponent {
   }
 
   async onFileSelected(event: Event): Promise<void> {
+    event.stopPropagation(); // Prevent event bubbling
     const files = (event.target as HTMLInputElement).files;
     if (files) {
       const fileArray = Array.from(files);
-      const { hasDupes, dupeFiles } = this.hasDuplicates(fileArray);
-      if (hasDupes) {
-        alert(`Cannot upload duplicate files: ${dupeFiles.join(', ')}`);
-        (event.target as HTMLInputElement).value = '';
-        return;
-      }
-      this.selectedFiles = fileArray;
-
-      await this.indexedDBService.saveFilesToIndexedDB(this.selectedFiles);
+      await this.handleFileUpload(fileArray, false);
     }
+    (event.target as HTMLInputElement).value = ''; // Clear the input
+  }
+
+  async onFolderSelected(event: Event): Promise<void> {
+    const files = (event.target as HTMLInputElement).files;
+    if (files) {
+      const fileArray = Array.from(files);
+      await this.handleFileUpload(fileArray, true);
+    }
+    (event.target as HTMLInputElement).value = '';
   }
 
   closeOverlay(event: MouseEvent): void {
@@ -227,75 +252,43 @@ export class FileUploadOverlayComponent {
   }
 
   async startUpload(): Promise<void> {
-    if (this.selectedFiles.length > 0) {
+    if (this.selectedFiles.length === 0) return;
+
+    try {
       const { hasDupes, dupeFiles } = this.hasDuplicates(this.selectedFiles);
       if (hasDupes) {
         alert(`Cannot upload duplicate files: ${dupeFiles.join(', ')}`);
         return;
       }
 
-      try {
-
-        if (this.folderInfo) this.fileUploadService.addFolderToQueue(this.selectedFiles);
-        else this.fileUploadService.addFilesToQueue(this.selectedFiles, this.currentFolderId);
-
-
-        this.fileUploadService.startUpload();
-        this.fileUploadService.closeFileUpload();
-        this.selectedFiles = [];
-        this.folderInfo = null;
-      } catch (error) {
-        console.error('Error during upload:', error);
-        alert('Failed to process files. Please try again.');
+      if (this.folderInfo) {
+        await this.fileUploadService.addFolderToQueue(this.selectedFiles);
+      } else {
+        await this.fileUploadService.addFilesToQueue(this.selectedFiles, this.currentFolderId);
       }
+
+      this.fileUploadService.startUpload();
+      this.fileUploadService.closeFileUpload();
+      await this.clearSelection();
+
+    } catch (error) {
+      console.error('Error during upload:', error);
+      alert('Failed to upload files. Please try again.');
     }
   }
 
   async clearSelection(): Promise<void> {
     try {
-      await this.indexedDBService.clearDatabase(); //clear IndexedDB
-
-      //clear component state
+      await this.indexedDBService.clearDatabase();
       this.selectedFiles = [];
       this.folderInfo = null;
-
-      //reset file inputs
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       const folderInput = document.querySelector('input[webkitdirectory]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
       if (folderInput) folderInput.value = '';
-
-      console.log('All data cleared successfully');
     } catch (error) {
       console.error('Error clearing data:', error);
       alert('Error clearing uploaded files. Please try again.');
-    }
-  }
-
-  async onFolderSelected(event: Event): Promise<void> {
-    const files = (event.target as HTMLInputElement).files;
-    if (files) {
-      const fileArray = Array.from(files);
-      if (fileArray.length > 0) {
-        const totalSize = fileArray.reduce((sum, file) => sum + file.size, 0);
-        const folderName = fileArray[0].webkitRelativePath.split('/')[0];
-
-        const { hasDupes, dupeFiles } = this.hasDuplicates(fileArray);
-        if (hasDupes) {
-          alert(`Cannot upload duplicate files: ${dupeFiles.join(', ')}`);
-          (event.target as HTMLInputElement).value = '';
-          return;
-        }
-
-        this.selectedFiles = fileArray;
-        this.folderInfo = {
-          name: folderName,
-          totalSize: totalSize,
-          fileCount: fileArray.length
-        };
-
-        await this.indexedDBService.saveFilesToIndexedDB(this.selectedFiles);
-      }
     }
   }
 }

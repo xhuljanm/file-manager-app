@@ -27,7 +27,7 @@ import { catchError, finalize, of } from 'rxjs';
     MatProgressSpinnerModule
   ],
   templateUrl: './register.component.html',
-  styleUrl: './register.component.scss'
+  styleUrls: ['./register.component.scss']
 })
 export class RegisterComponent implements OnInit {
   form!: FormGroup;
@@ -51,7 +51,7 @@ export class RegisterComponent implements OnInit {
   private initializeForm(): void {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      userName: ['', [Validators.required, Validators.minLength(3)]],
+      username: ['', [Validators.required, Validators.minLength(3)]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', [Validators.required]]
     }, { validators: this.passwordMatchValidator });
@@ -88,36 +88,22 @@ export class RegisterComponent implements OnInit {
     const control = this.form.get(controlName);
     if (!control) return '';
 
-    if (control.hasError('required')) {
-      return `${controlName.charAt(0).toUpperCase() + controlName.slice(1)} is required`;
-    }
-
-    if (controlName === 'email' && control.hasError('email')) {
-      return 'Please enter a valid email address';
-    }
-
-    if (controlName === 'userName' && control.hasError('minlength')) {
-      return 'Username must be at least 3 characters long';
-    }
-
-    if (controlName === 'password' && control.hasError('minlength')) {
-      return 'Password must be at least 6 characters long';
-    }
-
-    if (controlName === 'confirmPassword' && control.hasError('passwordMismatch')) {
-      return 'Passwords do not match';
-    }
+    if (control.hasError('required')) return `${controlName.charAt(0).toUpperCase() + controlName.slice(1)} is required`;
+    if (controlName === 'email' && control.hasError('email')) return 'Please enter a valid email address';
+    if (controlName === 'username' && control.hasError('minlength')) return 'Username must be at least 3 characters long';
+    if (controlName === 'password' && control.hasError('minlength')) return 'Password must be at least 6 characters long';
+    if (controlName === 'confirmPassword' && control.hasError('passwordMismatch')) return 'Passwords do not match';
 
     return '';
   }
 
   onSubmit(): void {
     if (this.form.valid) {
-      const { email, userName, password } = this.form.value;
+      const { email, username, password } = this.form.value;
       this.isRegistering = true;
       this.showErrorMessage = false;
 
-      this.http.post('https://localhost:7089/api/Auth/Register', { email, userName, password }, {
+      this.http.post('https://localhost:7089/api/Auth/Register', { email, username, password }, {
         headers: new HttpHeaders({
           'Content-Type': 'application/json',
           'accept': '*/*'
@@ -126,7 +112,8 @@ export class RegisterComponent implements OnInit {
         catchError(err => {
           console.error('Registration failed', err);
           this.showErrorMessage = true;
-          this.errorMessage = err.error || 'Registration failed. Please try again.';
+
+          err.status ? this.errorMessage = err.error || 'Registration failed. Please try again.' : this.errorMessage = 'Server offline. Come back later.';
           return of(null);
         }),
         finalize(() => {

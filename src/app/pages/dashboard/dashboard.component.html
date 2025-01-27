@@ -2,36 +2,43 @@
 
 <div class="container mt-4">
   <div class="navigation-bar mb-3 d-flex gap-2">
+    <!-- Back Button -->
     <button mat-button [disabled]="!canGoBack()" (click)="goBack()" class="back-button">
       <mat-icon>arrow_back</mat-icon>
       Back
     </button>
 
+    <!-- New Button -->
     <button mat-button [matMenuTriggerFor]="newMenu" class="new-button">
       <mat-icon>add</mat-icon>
       New
     </button>
 
+    <!-- Upload Button -->
     <button mat-button (click)="openFileUpload()">
       <mat-icon>upload</mat-icon>
       Upload
     </button>
 
+    <!-- Multi-Select Button -->
     <button mat-button (click)="toggleMultiSelectMode()" class="multi-select-button">
       <mat-icon>{{ isMultiSelectMode ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
       {{ isMultiSelectMode ? 'Deselect' : 'Select' }}
     </button>
 
+    <!-- Rename Button -->
     <button mat-button [disabled]="!selectedNode" (click)="rename()">
       <mat-icon>edit</mat-icon>
       Rename
     </button>
 
+    <!-- Delete Button -->
     <button mat-button [disabled]="!canDelete()" (click)="delete()">
       <mat-icon>delete</mat-icon>
       Delete {{ selectedNodes.size > 0 ? '(' + selectedNodes.size + ')' : '' }}
     </button>
 
+    <!-- Breadcrumbs -->
     <div class="breadcrumb-nav mb-3">
       <div class="breadcrumb-list">
         <ng-container *ngFor="let crumb of breadcrumbs; let last = last; let i = index">
@@ -47,9 +54,10 @@
     </div>
   </div>
 
+  <!-- Tree Container -->
   <div class="tree-container">
     <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" cdkDropList (cdkDropListDropped)="onDrop($event)">
-      <!-- For Files -->
+      <!-- File Node -->
       <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding class="file-node">
         <div
           class="file-node-content"
@@ -67,7 +75,7 @@
         </div>
       </mat-tree-node>
 
-      <!-- For Folders -->
+      <!-- Folder Node -->
       <mat-tree-node
         *matTreeNodeDef="let node; when: hasChild"
         matTreeNodePadding
@@ -91,6 +99,7 @@
   </div>
 </div>
 
+<!-- New Menu -->
 <mat-menu #newMenu="matMenu">
   <button mat-menu-item (click)="createNewFolder()">
     <mat-icon>create_new_folder</mat-icon>
@@ -102,4 +111,5 @@
   </button>
 </mat-menu>
 
+<!-- File Upload Overlay -->
 <app-file-upload-overlay *ngIf="uploadService.showOverlay$ | async"></app-file-upload-overlay>

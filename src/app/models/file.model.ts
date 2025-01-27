@@ -1,10 +1,16 @@
 export interface FileNode {
+  id?: number;
   name: string;
   type: 'folder' | 'file';
-  size?: number;
-  buffer?: ArrayBuffer;
   children?: FileNode[];
-  loaded?: boolean;
+  size?: number;
+  fileType?: string;
+  fileSize?: number;
+  fileData?: string;
+  folders?: FileNode[];
+  files?: FileNode[];
+  userId?: number | null;
+  folderId?: number | null;
 }
 
 export interface UploadItem {

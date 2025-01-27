@@ -20,6 +20,10 @@ export class AuthService {
       this.isAuthenticatedSubject.next(isAuth);
   }
 
+  getUserId() {
+    return localStorage.getItem('user_id') as string;
+  }
+
   login(credentials: { email: string; password: string }): Observable<any> {
       return this.http.post('https://localhost:7089/api/Auth/LogIn', credentials, {
           headers: new HttpHeaders({

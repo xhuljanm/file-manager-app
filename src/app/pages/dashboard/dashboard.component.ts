@@ -1,5 +1,6 @@
-import { Component, ViewChild, HostListener } from '@angular/core';
+import { Component, ViewChild, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 
 import { MatTreeNestedDataSource } from '@angular/material/tree';
 import { NestedTreeControl } from '@angular/cdk/tree';
@@ -22,12 +23,8 @@ import { FileUploadService } from '../../services/file-upload/file-upload.servic
 
 import { FileUtils } from '../../utils/file.utils';
 import { FileNode } from '../../models/file.model';
-
-interface Breadcrumb {
-  name: string;
-  node: FileNode[];
-  index: number;
-}
+import { Breadcrumb } from '../../models/breadcrumb.model';
+import { SharedService } from '../../services/shared/shared.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -51,7 +48,7 @@ interface Breadcrumb {
     FileUploadOverlayComponent
   ]
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   currentFolder: FileNode[] = [];
   selectedNodes: Set<FileNode> = new Set();
   isMultiSelectMode: boolean = false;
@@ -64,32 +61,25 @@ export class DashboardComponent {
   showUploadSection = false;
   isDragging = false;
 
-  constructor(public uploadService: FileUploadService, private fileUploadService: FileUploadService) {
-    // init with test data
-    const ROOT_DATA: FileNode[] = Array.from({ length: 20 }, (_, i) => ({
-      name: `Test Folder ${i + 1}`,
-      type: 'folder',
-      children: [
-        { name: `document${i + 1}.pdf`, type: 'file', size: 150000 },
-        { name: `image${i + 1}.jpg`, type: 'file', size: 250000 }
-      ]
-    }));
-
-    this.currentFolder = ROOT_DATA;
+  constructor(public uploadService: FileUploadService, private fileUploadService: FileUploadService, private http: HttpClient, private sharedService: SharedService) {
+    this.currentFolder = [];
     this.updateView();
 
     //handle file uploads
-    this.fileUploadService.filesUploaded$.subscribe(files => {
+    this.uploadService.filesUploaded$.subscribe(files => {
       files.forEach(file => {
-        const newFile: FileNode = { name: file.name, type: 'file', size: file.size };
-        this.currentFolder.push(newFile);
+        // prevent adding the same file if it already exists
+        const fileExists = this.currentFolder.some(f => f.name === file.name);
+        if (!fileExists) {
+          const newFile: FileNode = { name: file.name, type: 'file', size: file.size };
+          this.currentFolder.push(newFile);
+        }
       });
       this.updateView();
     });
 
     //handle folder uploads
-    this.fileUploadService.foldersUploaded$.subscribe(({name, files}) => {
-
+    this.uploadService.foldersUploaded$.subscribe(({name, files}) => {
       const rootFolder: FileNode = {
         name: name,
         type: 'folder',
@@ -122,6 +112,11 @@ export class DashboardComponent {
       this.updateView();
     });
 
+    this.sharedService.updateView$.subscribe((folders) => {
+      this.currentFolder = folders;
+      this.updateView(); // Ensure the view is updated
+    });
+
     this.breadcrumbs = [{
       name: 'My Drive',
       node: this.currentFolder,
@@ -129,10 +124,55 @@ export class DashboardComponent {
     }];
   }
 
+  ngOnInit(): void {
+    const userId = localStorage.getItem('user_id');
+    if (userId) {
+      this.fetchUserData(parseInt(userId, 10));
+    } else {
+      console.error('User ID is not found in localStorage');
+    }
+  }
+
+  fetchUserData(userId: number): void {
+    this.http.get(`https://localhost:7089/api/Users/${userId}`).subscribe(
+      (response: any) => {
+        const userData = response;
+        this.currentFolder = this.formatFolders(userData.folders);
+        this.updateView();
+        this.breadcrumbs = [{
+          name: 'My Drive',
+          node: this.currentFolder,
+          index: 0
+        }];
+      },
+      (error: any) => {
+        console.error('Failed to fetch user data:', error);
+      }
+    );
+  }
+
+  formatFolders(folders: any[]): FileNode[] {
+    return folders.map(folder => ({
+      id: folder.id,
+      name: folder.name,
+      type: 'folder',
+      children: [
+        ...this.formatFolders(folder.folders), // Add subfolders
+        ...folder.files.map((file: { id: any; name: any; fileSize: any; }) => ({
+          id: file.id,
+          name: file.name,
+          type: 'file',
+          size: file.fileSize,
+          children: [] // Files have no children
+        }))
+      ]
+    }));
+  }
+
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent): void {
-    if ((event.ctrlKey || event.metaKey) && event.key === 'a') { //ctrl + a to select all folders/files
-      event.preventDefault(); //prevent default browser select all
+    if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+      event.preventDefault();
       this.selectAllNodes();
     }
 
@@ -161,17 +201,23 @@ export class DashboardComponent {
 
   onFolderDoubleClick(node: FileNode): void {
     if (node.type === 'folder') {
-      this.navigationStack.push(this.currentFolder);
-      this.currentFolder = node.children || [];
+      this.navigationStack.push(this.currentFolder); // Save current folder in stack
+      this.currentFolder = node.children || []; // Navigate to the selected folder
+
       this.breadcrumbs.push({
         name: node.name,
-        node: this.currentFolder,
-        index: this.breadcrumbs.length
+        node: node.children || [],
+        index: this.breadcrumbs.length,
+        id: node.id // Include the folder's ID
       });
+
+      this.uploadService.setCurrentFolderId(node.id ?? null);
+
       this.updateView();
       this.selectedNode = null;
     }
   }
+
 
   selectNode(node: FileNode): void {
     this.selectedNode = node;
@@ -195,17 +241,21 @@ export class DashboardComponent {
 
   navigateToBreadcrumb(index: number): void {
     if (index < this.breadcrumbs.length) {
-      this.breadcrumbs = this.breadcrumbs.slice(0, index + 1); // remove all breadcrumbs after the clicked one
-      this.navigationStack = this.navigationStack.slice(0, index); // update navigation stack
+      this.breadcrumbs = this.breadcrumbs.slice(0, index + 1);
+      this.navigationStack = this.navigationStack.slice(0, index);
+      this.currentFolder = this.breadcrumbs[index].node;
 
-      this.currentFolder = this.breadcrumbs[index].node; //update current folder
+      const currentBreadcrumb = this.breadcrumbs[index];
+      this.uploadService.setCurrentFolderId(currentBreadcrumb.id ?? null);
+
       this.updateView();
       this.selectedNode = null;
     }
   }
 
+
   private updateView(): void {
-    this.dataSource.data = [...this.currentFolder];
+    this.dataSource.data = this.currentFolder;
   }
 
   onFileClick(node: FileNode): void {
@@ -217,22 +267,37 @@ export class DashboardComponent {
   createNewFolder(): void {
     const folderName = prompt('Enter folder name:');
     if (folderName) {
-      //check for duplicates in current folder
+      // Check for duplicate folders in the current directory
       const folderExists = this.currentFolder.some(item => item.type === 'folder' && item.name === folderName);
-
       if (folderExists) {
         alert('A folder with this name already exists!');
         return;
       }
 
-      const newFolder: FileNode = {
+      // parent ID based on the breadcrumbs
+      const parentId = this.breadcrumbs[this.breadcrumbs.length - 1].id || null;
+
+      // folder create req body
+      const folderData = {
         name: folderName,
-        type: 'folder',
-        children: []
+        userId: parseInt(localStorage.getItem('user_id')!, 10),
+        parentId: parentId
       };
 
-      this.currentFolder.push(newFolder);
-      this.updateView();
+      this.http.post('https://localhost:7089/api/Folder', folderData).subscribe((response: any) => {
+          // Add the new folder to the current view
+          const newFolder: FileNode = {
+            id: response.id,
+            name: response.name,
+            type: 'folder',
+            children: []
+          };
+          this.currentFolder.push(newFolder); // Update the current folder view
+          this.updateView(); // Refresh the UI
+        }, (error: any) => {
+          console.error('Failed to create folder:', error);
+          alert('Failed to create folder. Please try again.');
+        });
     }
   }
 
@@ -253,14 +318,32 @@ export class DashboardComponent {
         return;
       }
 
+      const userId = localStorage.getItem('user_id') as string;
+
       const newFile: FileNode = {
         name: fileName,
+        fileType: '',
+        fileSize: 0,
+        fileData: "",
+        userId: parseInt(userId, 10),
         type: 'file',
-        size: 0
+        folderId: this.getCurrentFolderId()
       };
 
-      this.currentFolder.push(newFile);
-      this.updateView();
+      this.http.post('https://localhost:7089/api/File', newFile).subscribe((response: any) => {
+        const newFile: FileNode = {
+          id: response.id,
+          name: response.name,
+          type: 'file',
+          children: []
+        };
+        this.currentFolder.push(newFile); // Update the current folder view
+        this.updateView(); // Refresh the UI
+      }, (error: any) => {
+        console.error('Failed to create folder:', error);
+        alert('Failed to create folder. Please try again.');
+      });
+
     }
   }
 
@@ -269,6 +352,7 @@ export class DashboardComponent {
   }
 
   rename(): void {
+    const userId = localStorage.getItem('user_id') as string;
     if (this.selectedNode) {
       if (this.selectedNode.type === 'file') {
         const lastDotIndex = this.selectedNode.name.lastIndexOf('.');
@@ -284,29 +368,48 @@ export class DashboardComponent {
         const newName = prompt('Enter new name:', this.selectedNode.name);
         if (newName && newName !== this.selectedNode.name) {
           this.selectedNode.name = newName;
-          this.updateView();
+
+          this.http.post('https://localhost:7089/api/Folder/Rename/' + userId, { folderId: this.selectedNode.id, newName: newName }).subscribe(() => {
+            this.updateView();
+          }, (error: any) => {
+            console.error('Failed to delete folder(s):', error);
+            alert('Failed to delete folder(s). Please try again.');
+          });
+
+          // this.updateView();
         }
       }
     }
   }
 
   delete(): void {
-    const itemsToDelete = this.isMultiSelectMode ? this.selectedNodes.size : (this.selectedNode ? 1 : 0);
+    const itemsToDelete = this.isMultiSelectMode ? Array.from(this.selectedNodes) : (this.selectedNode ? [this.selectedNode] : []);
 
-    if (itemsToDelete > 0) {
-      const confirmMessage = itemsToDelete === 1 ? 'Are you sure you want to delete this item?' : `Are you sure you want to delete ${itemsToDelete} items?`;
-      const confirmDelete = confirm(confirmMessage);
+    if (itemsToDelete.length === 0) {
+      alert('No items selected to delete!');
+      return;
+    }
 
-      if (confirmDelete) {
-        if (this.isMultiSelectMode) {
-          this.currentFolder = this.currentFolder.filter(item => !this.selectedNodes.has(item));
-          this.selectedNodes.clear();
-        } else {
-          this.currentFolder = this.currentFolder.filter(item => item !== this.selectedNode);
-          this.selectedNode = null;
-        }
+    const confirmMessage = itemsToDelete.length === 1
+      ? `Are you sure you want to delete the folder "${itemsToDelete[0].name}"?`
+      : `Are you sure you want to delete ${itemsToDelete.length} folders?`;
+    const confirmDelete = confirm(confirmMessage);
+
+    if (confirmDelete) {
+      const folderIdsToDelete = itemsToDelete.map(item => item.id);
+
+      this.http.request('delete', 'https://localhost:7089/api/Folder', { body: folderIdsToDelete, responseType: 'text' }).subscribe(() => {
+
+        this.currentFolder = this.currentFolder.filter(item => !folderIdsToDelete.includes(item.id));
+
+        this.selectedNodes.clear();
+        this.selectedNode = null;
+
         this.updateView();
-      }
+      }, (error: any) => {
+        console.error('Failed to delete folder(s):', error);
+        alert('Failed to delete folder(s). Please try again.');
+      });
     }
   }
 
@@ -354,10 +457,15 @@ export class DashboardComponent {
   }
 
   openFileUpload(): void {
-    this.fileUploadService.openFileUpload();
+    this.uploadService.openFileUpload();
   }
 
-  onFolderOpen(folderId: string) {
+  onFolderOpen(folderId: number) {
     this.fileUploadService.setCurrentFolderId(folderId);
+  }
+
+  getCurrentFolderId(): number | null {
+    const currentBreadcrumb = this.breadcrumbs[this.breadcrumbs.length - 1];
+    return currentBreadcrumb?.id || null;
   }
 }

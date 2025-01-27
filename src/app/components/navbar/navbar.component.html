@@ -3,16 +3,26 @@
     <mat-form-field class="search-field" appearance="outline">
       <mat-label>Search</mat-label>
       <mat-icon matPrefix>search</mat-icon>
-      <input matInput placeholder="Search for something...">
+      <input matInput placeholder="Search for something..." [(ngModel)]="searchText" (input)="onSearch()" name="searchText" aria-label="Search">
     </mat-form-field>
   </form>
 
   <div class="header-actions">
-    <button mat-icon-button>
+    <!-- <button mat-icon-button aria-label="Settings">
       <mat-icon>settings</mat-icon>
-    </button>
-    <button class="logout" mat-icon-button (click)="logout()">
+    </button> -->
+    <button class="logout" mat-icon-button (click)="logout()" aria-label="Logout">
       <mat-icon>logout</mat-icon>
     </button>
+  </div>
+
+  <!-- Search Results Dropdown -->
+  <div class="search-results-dropdown" *ngIf="showSearchResults && searchResults.length > 0">
+    <mat-list>
+      <mat-list-item *ngFor="let result of searchResults" (click)="onSearchResultClick(result)">
+        <mat-icon>folder</mat-icon>
+        <span>{{ result.name }}</span>
+      </mat-list-item>
+    </mat-list>
   </div>
 </mat-toolbar>
