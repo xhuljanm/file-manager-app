@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 
 import { MatTreeNestedDataSource } from '@angular/material/tree';
-import { NestedTreeControl } from '@angular/cdk/tree';
+import { CdkTree, CdkTreeNode, NestedTreeControl } from '@angular/cdk/tree';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 
 import { MatTreeModule } from '@angular/material/tree';
@@ -24,7 +24,9 @@ import { FileUploadService } from '../../services/file-upload/file-upload.servic
 import { FileUtils } from '../../utils/file.utils';
 import { FileNode } from '../../models/file.model';
 import { Breadcrumb } from '../../models/breadcrumb.model';
+import { FileItem, Folder } from '../../models/file.model';
 import { SharedService } from '../../services/shared/shared.service';
+import { FilePreviewComponent } from "../../components/file-preview/file-preview.component";
 
 @Component({
   selector: 'app-dashboard',
@@ -33,6 +35,8 @@ import { SharedService } from '../../services/shared/shared.service';
   standalone: true,
   imports: [
     CommonModule,
+    CdkTree,
+    CdkTreeNode,
     MatTreeModule,
     MatIconModule,
     MatButtonModule,
@@ -45,8 +49,9 @@ import { SharedService } from '../../services/shared/shared.service';
     MatListModule,
     DragDropModule,
     MatCheckboxModule,
-    FileUploadOverlayComponent
-  ]
+    FileUploadOverlayComponent,
+    FilePreviewComponent
+]
 })
 export class DashboardComponent implements OnInit {
   currentFolder: FileNode[] = [];
@@ -61,6 +66,7 @@ export class DashboardComponent implements OnInit {
   showUploadSection = false;
   isDragging = false;
   @Input() isDarkMode: boolean = false;
+  isFilePreviewVisible: boolean = false;
 
   constructor(public uploadService: FileUploadService, private fileUploadService: FileUploadService, private http: HttpClient, private sharedService: SharedService) {
     this.currentFolder = [];
@@ -132,6 +138,49 @@ export class DashboardComponent implements OnInit {
     } else {
       console.error('User ID is not found in localStorage');
     }
+
+    this.sharedService.fileContent$.subscribe((data) => {
+      console.log(data, !!data);
+      this.isFilePreviewVisible = !!data;
+    });
+  }
+
+  openFilePreview(node: FileNode): void {
+    if (node.type === 'file') {
+      const fileData = this.findFileContent(node.name);
+      console.log('Found File Content:', fileData);
+      if (fileData) {
+        // Pass the full fileData object instead of just the file content string
+        this.sharedService.triggerPreview({
+          id: fileData.id,
+          fileName: fileData.name,
+          fileSize: fileData.fileSize,
+          content: fileData.fileData // This is the actual file content
+        });
+      } else {
+        console.warn('File content not found.');
+      }
+    }
+  }
+
+  private findFileContent(fileName: string): FileItem | null {
+      const folderData = localStorage.getItem('userData');
+      if (folderData) {
+        const parsedData = JSON.parse(folderData);
+        const file = this.findFile(parsedData.folders, fileName);
+        return file ? file : null; // Return the full file object
+      }
+      return null;
+  }
+
+  private findFile(folders: Folder[], fileName: string): FileItem | null {
+      for (const folder of folders) {
+        const file = folder.files.find(f => f.name === fileName);
+        if (file) return file;
+        const subFolderFile = this.findFile(folder.folders, fileName);
+        if (subFolderFile) return subFolderFile;
+      }
+      return null;
   }
 
   fetchUserData(userId: number): void {
@@ -173,7 +222,7 @@ export class DashboardComponent implements OnInit {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent): void {
-    if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'a' && this.isFilePreviewVisible) {
       event.preventDefault();
       this.selectAllNodes();
     }

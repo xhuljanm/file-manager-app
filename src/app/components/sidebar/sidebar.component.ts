@@ -11,26 +11,7 @@ import { MatTreeModule, MatTreeNestedDataSource } from '@angular/material/tree';
 import { NestedTreeControl } from '@angular/cdk/tree';
 import { FileNode } from '../../models/file.model';
 import { SharedService } from '../../services/shared/shared.service';
-
-export interface FileItem {
-  id: number;
-  name: string;
-  fileType: string;
-  fileSize: number;
-  fileData: string;
-  userId: number;
-  folderId: number;
-  versions: any[];
-}
-
-export interface Folder {
-  id: number;
-  name: string;
-  userId: number;
-  parentId: number | null;
-  folders: Folder[];
-  files: FileItem[];
-}
+import { FileItem, Folder } from '../../models/file.model';
 
 @Component({
   selector: 'app-sidebar',
@@ -66,11 +47,13 @@ export class SidebarComponent implements OnInit {
 
   ngOnInit(): void {
     try {
-      const folderData = localStorage.getItem('userData');
+      const folderData = localStorage.getItem('userData') as string;
+      console.log(folderData);
       if (folderData) {
         const parsedData = JSON.parse(folderData);
         const folders: Folder[] = parsedData.folders || [];
         this.nestedDataSource.data = this.buildTree(folders);
+        console.log(parsedData, 'parsedData');
       }
     } catch (error) {
       console.error('Error parsing folderData:', error);
@@ -90,5 +73,42 @@ export class SidebarComponent implements OnInit {
       ];
       return { name: folder.name, type: 'folder', children } as FileNode;
     });
+  }
+
+  openFilePreview(node: FileNode): void {
+    if (node.type === 'file') {
+      const fileData = this.findFileContent(node.name);
+      console.log('Found File Content:', fileData);
+      if (fileData) {
+        this.sharedService.triggerPreview({
+          id: fileData.id,
+          fileName: fileData.name,
+          fileSize: fileData.fileSize,
+          content: fileData.fileData
+        });
+      } else {
+        console.warn('File content not found.');
+      }
+    }
+  }
+
+  private findFileContent(fileName: string): FileItem | null {
+    const folderData = localStorage.getItem('userData');
+    if (folderData) {
+      const parsedData = JSON.parse(folderData);
+      const file = this.findFile(parsedData.folders, fileName);
+      return file ? file : null;
+    }
+    return null;
+  }
+
+  private findFile(folders: Folder[], fileName: string): FileItem | null {
+    for (const folder of folders) {
+      const file = folder.files.find(f => f.name === fileName);
+      if (file) return file;
+      const subFolderFile = this.findFile(folder.folders, fileName);
+      if (subFolderFile) return subFolderFile;
+    }
+    return null;
   }
 }

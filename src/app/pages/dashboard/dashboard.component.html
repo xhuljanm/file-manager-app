@@ -60,7 +60,7 @@
   <div class="tree-container">
     <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" cdkDropList (cdkDropListDropped)="onDrop($event)">
       <!-- File Node -->
-      <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding class="file-node">
+      <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding class="file-node" (dblclick)="openFilePreview(node)">
         <div
           class="file-node-content"
           [class.selected]="isMultiSelectMode ? selectedNodes.has(node) : selectedNode === node"
@@ -100,6 +100,8 @@
     </mat-tree>
   </div>
 </div>
+
+<app-file-preview *ngIf="isFilePreviewVisible"></app-file-preview>
 
 <!-- New Menu -->
 <mat-menu #newMenu="matMenu">

@@ -1,4 +1,26 @@
-<div class="file-preview">
-  <h3>File Preview</h3>
-  <pre>{{ preview }}</pre>
+<div class="file-preview-overlay" *ngIf="isVisible">
+  <div class="preview-container">
+    <header class="preview-header">
+      <span class="file-name">{{ fileName }}</span>
+      <div class="header-actions">
+        <button *ngIf="!isEditMode" class="action-btn" (click)="enableEdit()">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button *ngIf="isEditMode" class="action-btn" (click)="saveEdit()">
+          <mat-icon>save</mat-icon>
+        </button>
+        <button class="close-btn" (click)="closePreview()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </header>
+    <div class="file-content">
+      <ng-container *ngIf="!isEditMode; else editTemplate">
+        <pre>{{ preview }}</pre>
+      </ng-container>
+      <ng-template #editTemplate>
+        <textarea [(ngModel)]="preview" rows="10"></textarea>
+      </ng-template>
+    </div>
+  </div>
 </div>

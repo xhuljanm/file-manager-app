@@ -30,3 +30,23 @@ export interface FolderUpload {
   totalSize: number;
   fileCount: number;
 }
+
+export interface FileItem {
+  id: number;
+  name: string;
+  fileType: string;
+  fileSize: number;
+  fileData: string;
+  userId: number;
+  folderId: number;
+  versions: any[];
+}
+
+export interface Folder {
+  id: number;
+  name: string;
+  userId: number;
+  parentId: number | null;
+  folders: Folder[];
+  files: FileItem[];
+}

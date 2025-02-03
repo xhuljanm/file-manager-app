@@ -1,30 +1,28 @@
-import { HttpClient, HttpClientModule, HttpHeaders } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, ReactiveFormsModule } from '@angular/forms';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { catchError, finalize, of } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { catchError, finalize, of } from 'rxjs';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-register',
   standalone: true,
   imports: [
-    ReactiveFormsModule,
-    HttpClientModule,
-    CommonModule,
-    RouterModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    CommonModule,
+    ReactiveFormsModule
   ],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss']
@@ -52,36 +50,61 @@ export class RegisterComponent implements OnInit {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       username: ['', [Validators.required, Validators.minLength(3)]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ['', [Validators.required]]
+      password: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(8),
+          this.passwordStrengthValidator,
+        ],
+      ],
+      confirmPassword: ['', [Validators.required]],
     }, { validators: this.passwordMatchValidator });
   }
 
-  private passwordMatchValidator(form: FormGroup): null {
-    const passwordControl = form.get('password');
-    const confirmPasswordControl = form.get('confirmPassword');
+  private passwordMatchValidator(form: AbstractControl): ValidationErrors | null {
+    const password = form.get('password')?.value;
+    const confirmPassword = form.get('confirmPassword')?.value;
 
-    if (!passwordControl || !confirmPasswordControl) {
-      return null;
-    }
-
-    const password = passwordControl.value;
-    const confirmPassword = confirmPasswordControl.value;
-
-    if (password !== confirmPassword) {
-      confirmPasswordControl.setErrors({ passwordMismatch: true });
-    } else {
-      const errors = confirmPasswordControl.errors;
-      if (errors) {
-        delete errors['passwordMismatch'];
-        if (Object.keys(errors).length === 0) {
-          confirmPasswordControl.setErrors(null);
-        } else {
-          confirmPasswordControl.setErrors(errors);
-        }
-      }
+    if (password && confirmPassword && password !== confirmPassword) {
+      return { passwordMismatch: true };
     }
     return null;
+  }
+
+  private passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
+    const password = control.value;
+
+    if (!password) {
+      return null;  // If the field is empty, no validation errors.
+    }
+
+    // Regex to check for at least one uppercase letter, one number, one special character, and minimum length of 8 characters
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const isValidLength = password.length >= 8;
+
+    const errors: ValidationErrors = {};
+
+    if (!hasUpperCase) {
+      errors['uppercase'] = 'Password must contain at least one uppercase letter.';
+    }
+    if (!hasLowerCase) {
+      errors['lowercase'] = 'Password must contain at least one lowercase letter.';
+    }
+    if (!hasNumber) {
+      errors['number'] = 'Password must contain at least one number.';
+    }
+    if (!hasSpecialChar) {
+      errors['specialChar'] = 'Password must contain at least one special character.';
+    }
+    if (!isValidLength) {
+      errors['minlength'] = 'Password must be at least 8 characters long.';
+    }
+
+    return Object.keys(errors).length > 0 ? errors : null;
   }
 
   getErrorMessage(controlName: string): string {
@@ -91,7 +114,10 @@ export class RegisterComponent implements OnInit {
     if (control.hasError('required')) return `${controlName.charAt(0).toUpperCase() + controlName.slice(1)} is required`;
     if (controlName === 'email' && control.hasError('email')) return 'Please enter a valid email address';
     if (controlName === 'username' && control.hasError('minlength')) return 'Username must be at least 3 characters long';
-    if (controlName === 'password' && control.hasError('minlength')) return 'Password must be at least 6 characters long';
+    if (controlName === 'password') {
+      if (control.hasError('minlength')) return 'Password must be at least 8 characters long';
+      if (control.hasError('passwordStrength')) return 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+    }
     if (controlName === 'confirmPassword' && control.hasError('passwordMismatch')) return 'Passwords do not match';
 
     return '';

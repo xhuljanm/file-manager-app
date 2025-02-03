@@ -17,11 +17,29 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Username</mat-label>
-          <input matInput formControlName="username" placeholder="Choose a username">
-          <mat-icon matPrefix>person</mat-icon>
-          <mat-error *ngIf="form.get('username')?.invalid">
-            {{getErrorMessage('username')}}
+          <mat-label>Password</mat-label>
+          <input matInput formControlName="password" [type]="hidePassword ? 'password' : 'text'">
+          <mat-icon matPrefix>lock</mat-icon>
+          <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
+            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          <mat-error *ngIf="form.get('password')?.hasError('required')">
+            Password is required
+          </mat-error>
+          <mat-error *ngIf="form.get('password')?.hasError('minlength')">
+            Password must be at least 8 characters long
+          </mat-error>
+          <mat-error *ngIf="form.get('password')?.hasError('uppercase')">
+            Password must contain at least one uppercase letter
+          </mat-error>
+          <mat-error *ngIf="form.get('password')?.hasError('lowercase')">
+            Password must contain at least one lowercase letter
+          </mat-error>
+          <mat-error *ngIf="form.get('password')?.hasError('number')">
+            Password must contain at least one number
+          </mat-error>
+          <mat-error *ngIf="form.get('password')?.hasError('specialChar')">
+            Password must contain at least one special character
           </mat-error>
         </mat-form-field>
 
@@ -52,8 +70,7 @@
         </mat-form-field>
 
         <div class="button-container">
-          <button mat-raised-button color="primary" type="submit"
-                  [disabled]="form.invalid || isRegistering">
+          <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isRegistering">
             <mat-spinner diameter="20" *ngIf="isRegistering"></mat-spinner>
             <span *ngIf="!isRegistering">Register</span>
           </button>
@@ -62,7 +79,7 @@
         <div class="login-section">
           <span>Already have an account?</span>
           <a mat-button color="primary" routerLink="/login">Login</a>
-      </div>
+        </div>
       </form>
 
       <div class="message-container">
