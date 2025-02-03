@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth/auth.service';
@@ -10,9 +10,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatListModule } from '@angular/material/list';
-import { Router } from '@angular/router';
+import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { SharedService } from '../../services/shared/shared.service';
 import { FileNode } from '../../models/file.model';
+import { DarkModeService } from '../../services/dark-mode/dark-mode.service';
 
 @Component({
   selector: 'app-navbar',
@@ -26,25 +27,65 @@ import { FileNode } from '../../models/file.model';
     MatFormFieldModule,
     FormsModule,
     MatMenuModule,
-    MatListModule
+    MatListModule,
+    MatSlideToggleModule
   ],
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss']
 })
-export class NavbarComponent {
+export class NavbarComponent implements OnInit {
+  @Output() darkModeToggled = new EventEmitter<boolean>();
   searchText: string = '';
   searchResults: any[] = [];
   showSearchResults: boolean = false;
+  username: string | null = null;
+  isDarkMode: boolean = false;
+  private tokenCheckInterval: any;
 
   constructor(
     private authService: AuthService,
     private http: HttpClient,
-    private router: Router,
-    private sharedService: SharedService
+    private sharedService: SharedService,
+    private darkModeService: DarkModeService
   ) {}
+
+  ngOnInit(): void {
+    this.parseUsernameFromJwt();
+    this.startTokenCheck();
+  }
+
+  ngOnDestroy(): void {
+    if (this.tokenCheckInterval) clearInterval(this.tokenCheckInterval);
+  }
 
   logout(): void {
     this.authService.logout();
+  }
+
+  toggleDarkMode(event: MatSlideToggleChange): void {
+    this.darkModeService.toggleDarkMode(event.checked);
+  }
+
+  parseUsernameFromJwt(): void {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const payload = token.split('.')[1];
+      const decoded = JSON.parse(atob(payload));
+
+      if (decoded.exp * 1000 < Date.now()) this.logout();
+      else this.username = decoded.unique_name;
+
+    } catch {
+      this.logout();
+    }
+  }
+
+  startTokenCheck(): void {
+    this.tokenCheckInterval = setInterval(() => {
+      this.parseUsernameFromJwt();
+    }, 3600000); // Check every hour (in milliseconds)
   }
 
   onSearch(): void {
@@ -63,8 +104,6 @@ export class NavbarComponent {
 
   onSearchResultClick(result: any): void {
     const folderData = Array.isArray(result) ? result : [result];
-
-    // Flatten the folder data
     const flattenedFolderData = this.flattenFolderData(folderData);
 
     this.sharedService.triggerUpdateView(flattenedFolderData);
@@ -96,9 +135,5 @@ export class NavbarComponent {
     });
 
     return result;
-  }
-
-  generateBreadcrumbs(result: any): string[] {
-    return [result.name, 'Dashboard'];  // Customize breadcrumb structure as needed
   }
 }

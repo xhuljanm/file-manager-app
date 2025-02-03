@@ -2,19 +2,16 @@
 
 <div class="container mt-4">
   <div class="navigation-bar mb-3 d-flex gap-2">
-    <!-- Back Button -->
     <button mat-button [disabled]="!canGoBack()" (click)="goBack()" class="back-button">
       <mat-icon>arrow_back</mat-icon>
       Back
     </button>
 
-    <!-- New Button -->
-    <button mat-button [matMenuTriggerFor]="newMenu" class="new-button">
+    <button mat-button [matMenuTriggerFor]="newMenu">
       <mat-icon>add</mat-icon>
       New
     </button>
 
-    <!-- Upload Button -->
     <button mat-button (click)="openFileUpload()">
       <mat-icon>upload</mat-icon>
       Upload
@@ -36,6 +33,11 @@
     <button mat-button [disabled]="!canDelete()" (click)="delete()">
       <mat-icon>delete</mat-icon>
       Delete {{ selectedNodes.size > 0 ? '(' + selectedNodes.size + ')' : '' }}
+    </button>
+
+    <button mat-button [disabled]="!selectedNode" (click)="download()">
+      <mat-icon>download</mat-icon>
+      Download
     </button>
 
     <!-- Breadcrumbs -->
@@ -111,5 +113,4 @@
   </button>
 </mat-menu>
 
-<!-- File Upload Overlay -->
 <app-file-upload-overlay *ngIf="uploadService.showOverlay$ | async"></app-file-upload-overlay>

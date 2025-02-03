@@ -49,6 +49,13 @@
   align-items: center;
   gap: 16px;
 
+  .username {
+    font-size: small;
+    font-weight: 500;
+    color: #333;
+    margin-right: 8px;
+  }
+
   .action-button {
     min-width: 40px;
     height: 40px;

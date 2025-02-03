@@ -15,7 +15,6 @@ export class AuthService {
   isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
   constructor(private router: Router, private http: HttpClient) {
-      // Initialize the authentication state from localStorage
       const isAuth = localStorage.getItem('isAuthenticated') === 'true';
       this.isAuthenticatedSubject.next(isAuth);
   }

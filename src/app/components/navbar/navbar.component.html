@@ -8,9 +8,12 @@
   </form>
 
   <div class="header-actions">
-    <!-- <button mat-icon-button aria-label="Settings">
-      <mat-icon>settings</mat-icon>
-    </button> -->
+    <span *ngIf="username" class="username">Username: {{ username }}</span>
+
+    <!-- Dark Mode Toggle -->
+    <mat-slide-toggle (change)="toggleDarkMode($event)" [checked]="isDarkMode" title="Dark Mode">
+    </mat-slide-toggle>
+
     <button class="logout" mat-icon-button (click)="logout()" aria-label="Logout">
       <mat-icon>logout</mat-icon>
     </button>

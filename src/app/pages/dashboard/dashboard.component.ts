@@ -1,4 +1,4 @@
-import { Component, ViewChild, HostListener, OnInit } from '@angular/core';
+import { Component, ViewChild, HostListener, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 
@@ -60,6 +60,7 @@ export class DashboardComponent implements OnInit {
   selectedNode: FileNode | null = null;
   showUploadSection = false;
   isDragging = false;
+  @Input() isDarkMode: boolean = false;
 
   constructor(public uploadService: FileUploadService, private fileUploadService: FileUploadService, private http: HttpClient, private sharedService: SharedService) {
     this.currentFolder = [];
@@ -114,7 +115,7 @@ export class DashboardComponent implements OnInit {
 
     this.sharedService.updateView$.subscribe((folders) => {
       this.currentFolder = folders;
-      this.updateView(); // Ensure the view is updated
+      this.updateView();
     });
 
     this.breadcrumbs = [{
@@ -138,6 +139,7 @@ export class DashboardComponent implements OnInit {
       (response: any) => {
         const userData = response;
         this.currentFolder = this.formatFolders(userData.folders);
+        localStorage.setItem('userData', JSON.stringify(userData));
         this.updateView();
         this.breadcrumbs = [{
           name: 'My Drive',
@@ -379,6 +381,18 @@ export class DashboardComponent implements OnInit {
           // this.updateView();
         }
       }
+    }
+  }
+
+  download(): void {
+    if(this.selectedNode && this.selectedNode.type === 'file') {
+      this.http.get(`https://localhost:7089/api/File/DownloadFile?fileId=${this.selectedNode.id}`).subscribe((response: any) => {
+        console.log(response, this.selectedNode);
+        // const link = document.createElement('a');
+        // link.href = `data:application/octet-stream;base64,${response.filedata}`;
+        // link.download = fileName;
+        // link.click();
+      })
     }
   }
 
